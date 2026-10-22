@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read int|null $subtasks_done_count
  * @property-read Collection<int, Attachment> $attachments
  * @property-read int|null $attachments_count
+ * @property-read Collection<int, CustomFieldValue> $customFieldValues
  */
 #[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'position', 'created_by'])]
 class Task extends Model
@@ -222,6 +223,16 @@ class Task extends Model
     }
 
     /**
+     * Get the task's custom field values.
+     *
+     * @return HasMany<CustomFieldValue, $this>
+     */
+    public function customFieldValues(): HasMany
+    {
+        return $this->hasMany(CustomFieldValue::class);
+    }
+
+    /**
      * Get the task's history, oldest first.
      *
      * @return HasMany<TaskActivity, $this>
@@ -263,6 +274,11 @@ class Task extends Model
             'subtasks_count' => $this->subtasks_count ?? 0,
             'subtasks_done_count' => $this->subtasks_done_count ?? 0,
             'attachments_count' => $this->attachments_count ?? 0,
+            // Keyed by field id. Only sent where the caller loaded the values
+            // it wants this viewer to see.
+            'custom_fields' => (object) ($this->relationLoaded('customFieldValues')
+                ? $this->customFieldValues->pluck('value', 'custom_field_id')->all()
+                : []),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

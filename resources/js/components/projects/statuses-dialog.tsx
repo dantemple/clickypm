@@ -13,6 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { newKey } from '@/lib/utils';
 import { update } from '@/routes/projects/statuses';
 import type { Project, Status } from '@/types';
 
@@ -80,7 +81,7 @@ function StatusesForm({
             ...current.filter((row) => !row.is_done),
             {
                 id: null,
-                key: crypto.randomUUID(),
+                key: newKey(),
                 name: '',
                 color: '#8b5cf6',
                 is_done: false,

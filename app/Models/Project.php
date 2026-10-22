@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -31,6 +32,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, Status> $statuses
  * @property-read Collection<int, ProjectView> $views
  * @property-read Collection<int, Task> $tasks
+ * @property-read Collection<int, CustomField> $customFields
  * @property-read int|null $tasks_count
  * @property-read int|null $done_tasks_count
  * @property-read int|null $requests_count
@@ -90,6 +92,16 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    /**
+     * Get the workspace custom fields the project uses.
+     *
+     * @return BelongsToMany<CustomField, $this>
+     */
+    public function customFields(): BelongsToMany
+    {
+        return $this->belongsToMany(CustomField::class)->withTimestamps()->orderBy('custom_fields.id');
     }
 
     /**

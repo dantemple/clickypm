@@ -2,6 +2,10 @@ import { Form, Head, router } from '@inertiajs/react';
 import { ChevronDown, Mail, UserPlus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CancelInvitationModal from '@/components/cancel-invitation-modal';
+import {
+    CustomFieldsSection,
+    type WorkspaceField,
+} from '@/components/custom-fields/custom-fields-section';
 import DeleteTeamModal from '@/components/delete-team-modal';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -28,6 +32,7 @@ import { useInitials } from '@/hooks/use-initials';
 import { edit, index, update } from '@/routes/teams';
 import { update as updateMember } from '@/routes/teams/members';
 import type {
+    CustomFieldTypeOption,
     RoleOption,
     Team,
     TeamInvitation,
@@ -39,6 +44,8 @@ type Props = {
     team: Team;
     members: TeamMember[];
     invitations: TeamInvitation[];
+    customFields: WorkspaceField[];
+    fieldTypes: CustomFieldTypeOption[];
     permissions: TeamPermissions;
     availableRoles: RoleOption[];
 };
@@ -47,6 +54,8 @@ export default function TeamEdit({
     team,
     members,
     invitations,
+    customFields,
+    fieldTypes,
     permissions,
     availableRoles,
 }: Props) {
@@ -319,6 +328,13 @@ export default function TeamEdit({
                         </div>
                     </div>
                 ) : null}
+
+                <CustomFieldsSection
+                    team={team}
+                    fields={customFields}
+                    fieldTypes={fieldTypes}
+                    canManage={permissions.canUpdateTeam}
+                />
 
                 {permissions.canDeleteTeam && !team.isPersonal ? (
                     <div className="space-y-6">

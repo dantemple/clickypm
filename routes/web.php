@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Projects\AttachmentController;
 use App\Http\Controllers\Projects\CommentController;
 use App\Http\Controllers\Projects\ProjectController;
+use App\Http\Controllers\Projects\ProjectCustomFieldController;
 use App\Http\Controllers\Projects\ProjectStatusController;
 use App\Http\Controllers\Projects\ProjectViewController;
 use App\Http\Controllers\Projects\SubtaskController;
@@ -27,6 +28,7 @@ Route::prefix('{current_team}')
         Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
         Route::put('projects/{project}/statuses', [ProjectStatusController::class, 'update'])->name('projects.statuses.update');
+        Route::put('projects/{project}/custom-fields', [ProjectCustomFieldController::class, 'update'])->name('projects.fields.update');
 
         Route::post('projects/{project}/views', [ProjectViewController::class, 'store'])->name('projects.views.store');
         Route::get('projects/{project}/views/{view}', [ProjectViewController::class, 'show'])->name('projects.views.show');

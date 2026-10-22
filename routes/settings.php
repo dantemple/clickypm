@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Teams\CustomFieldController;
 use App\Http\Controllers\Teams\TeamController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
@@ -44,6 +45,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('settings/teams/{team}/invitations', [TeamInvitationController::class, 'store'])->name('teams.invitations.store');
         Route::delete('settings/teams/{team}/invitations/{invitation}', [TeamInvitationController::class, 'destroy'])->name('teams.invitations.destroy');
+
+        Route::post('settings/teams/{team}/custom-fields', [CustomFieldController::class, 'store'])->name('teams.fields.store');
+        Route::scopeBindings()->group(function () {
+            Route::patch('settings/teams/{team}/custom-fields/{customField}', [CustomFieldController::class, 'update'])->name('teams.fields.update');
+            Route::delete('settings/teams/{team}/custom-fields/{customField}', [CustomFieldController::class, 'destroy'])->name('teams.fields.destroy');
+        });
     });
 });
 

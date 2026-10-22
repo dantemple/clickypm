@@ -183,9 +183,50 @@ function describeActivity({ type, data }: Activity): ReactNode {
             return <>attached {quote(data.name)}</>;
         case 'attachment_removed':
             return <>removed the attachment {quote(data.name)}</>;
+        case 'custom_field':
+            return describeFieldChange(data);
         default:
             return 'updated this task';
     }
+}
+
+function describeFieldChange(data: Activity['data']): ReactNode {
+    const name = <span className="text-foreground">{text(data.name)}</span>;
+    const value = (value: unknown) => {
+        if (data.type === 'date') {
+            return <q className="text-foreground">{formatDue(text(value))}</q>;
+        }
+
+        if (data.type === 'number' && text(value) !== '') {
+            return (
+                <q className="text-foreground">
+                    {Number(text(value)).toLocaleString('en-GB', {
+                        maximumFractionDigits: 10,
+                    })}
+                </q>
+            );
+        }
+
+        return quote(value);
+    };
+
+    if (data.type === 'checkbox') {
+        return data.to ? <>checked {name}</> : <>unchecked {name}</>;
+    }
+
+    if (!data.to) {
+        return <>cleared {name}</>;
+    }
+
+    return data.from ? (
+        <>
+            changed {name} from {value(data.from)} to {value(data.to)}
+        </>
+    ) : (
+        <>
+            set {name} to {value(data.to)}
+        </>
+    );
 }
 
 function CommentItem({ task, comment }: { task: Task; comment: Comment }) {

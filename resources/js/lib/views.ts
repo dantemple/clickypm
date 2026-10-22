@@ -1,6 +1,12 @@
 import { router } from '@inertiajs/react';
+import {
+    fieldForColumn,
+    fieldSortValue,
+    fieldValue,
+} from '@/lib/custom-fields';
 import { update as updateViewRoute } from '@/routes/projects/views';
 import type {
+    CustomField,
     Member,
     ProjectView,
     SortColumn,
@@ -62,13 +68,19 @@ export function sortTasks(
     direction: SortDirection,
     statuses: Status[],
     members: Member[],
+    fields: CustomField[] = [],
 ): Task[] {
     const statusIndex = new Map(statuses.map((s, index) => [s.id, index]));
     const memberName = new Map(members.map((m) => [m.id, m.name]));
     const byNumber = (a: number, b: number) => a - b;
     const byString = (a: string, b: string) => a.localeCompare(b);
+    const field = fieldForColumn(column, fields);
 
     const value = (task: Task): string | number | null => {
+        if (field) {
+            return fieldSortValue(field, fieldValue(task, field));
+        }
+
         switch (column) {
             case 'position':
                 return task.position;
@@ -86,6 +98,9 @@ export function sortTasks(
                 return task.due_date;
             case 'created_at':
                 return task.created_at;
+            default:
+                // A column for a field the project no longer uses.
+                return null;
         }
     };
 

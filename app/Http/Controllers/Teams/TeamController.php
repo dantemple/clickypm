@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Teams;
 
 use App\Actions\Teams\CreateTeam;
+use App\Enums\CustomFieldType;
 use App\Enums\TeamRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\DeleteTeamRequest;
 use App\Http\Requests\Teams\SaveTeamRequest;
+use App\Models\CustomField;
 use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
@@ -82,6 +84,11 @@ class TeamController extends Controller
                     'role_label' => $invitation->role->label(),
                     'created_at' => $invitation->created_at->toISOString(),
                 ]),
+            'customFields' => $team->customFields()->withCount('projects')->get()->map(fn (CustomField $field) => [
+                ...$field->toFieldData(),
+                'projects_count' => $field->projects_count,
+            ]),
+            'fieldTypes' => CustomFieldType::options(),
             'permissions' => $user->toTeamPermissions($team),
             'availableRoles' => TeamRole::assignable(),
         ]);

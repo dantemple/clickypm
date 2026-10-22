@@ -1,4 +1,6 @@
 import { Check, Inbox, Trash2, X } from 'lucide-react';
+import { Fragment } from 'react';
+import { CustomFieldInput } from '@/components/custom-fields/custom-field-input';
 import { useProject } from '@/components/projects/project-context';
 import {
     AssigneePicker,
@@ -69,7 +71,7 @@ function TaskDetails({
     details: TaskDetailsData;
     onClose: () => void;
 }) {
-    const { project, canEdit } = useProject();
+    const { project, canEdit, customFields } = useProject();
     // Both follow other people's edits, except while you're typing in them.
     const {
         draft: title,
@@ -209,6 +211,20 @@ function TaskDetails({
                         <span className="text-muted-foreground">None</span>
                     )}
                 </dd>
+
+                {customFields.map((field) => (
+                    <Fragment key={field.id}>
+                        <dt
+                            className="truncate text-muted-foreground"
+                            title={field.name}
+                        >
+                            {field.name}
+                        </dt>
+                        <dd className="min-w-0">
+                            <CustomFieldInput task={task} field={field} />
+                        </dd>
+                    </Fragment>
+                ))}
             </dl>
 
             <div className="flex flex-col gap-2 border-t p-4">

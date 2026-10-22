@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Maximize2 } from 'lucide-react';
 import { useRef } from 'react';
+import { CustomFieldInput } from '@/components/custom-fields/custom-field-input';
 import { useProject } from '@/components/projects/project-context';
 import { AddTaskRow } from '@/components/tasks/add-task-row';
 import { TaskBadges } from '@/components/tasks/task-badges';
@@ -10,11 +11,21 @@ import {
     StatusPicker,
     StatusToggle,
 } from '@/components/tasks/pickers';
+import { fieldColumn, fieldForColumn } from '@/lib/custom-fields';
 import { formatDateTime, updateTask } from '@/lib/tasks';
 import { useSyncedDraft } from '@/hooks/use-synced-draft';
 import { cn } from '@/lib/utils';
 import { sortTasks } from '@/lib/views';
-import type { SortColumn, Task, TaskColumn, ViewSettings } from '@/types';
+import type {
+    CustomField,
+    FieldColumn,
+    SortColumn,
+    Task,
+    TaskColumn,
+    ViewSettings,
+} from '@/types';
+
+type Column = TaskColumn | FieldColumn;
 
 export const TABLE_COLUMNS: Record<TaskColumn, string> = {
     status: 'Status',
@@ -23,6 +34,21 @@ export const TABLE_COLUMNS: Record<TaskColumn, string> = {
     due_date: 'Due date',
     created_at: 'Created',
 };
+
+/** Every column a table can show: the built-in ones, then the project's fields. */
+export function tableColumns(fields: CustomField[]): Column[] {
+    return [
+        ...(Object.keys(TABLE_COLUMNS) as TaskColumn[]),
+        ...fields.map(fieldColumn),
+    ];
+}
+
+export function columnLabel(column: Column, fields: CustomField[]): string {
+    return (
+        fieldForColumn(column, fields)?.name ??
+        TABLE_COLUMNS[column as TaskColumn]
+    );
+}
 
 export function TableView({
     tasks,
@@ -33,10 +59,10 @@ export function TableView({
     settings: ViewSettings;
     onSettingsChange: (settings: Partial<ViewSettings>) => void;
 }) {
-    const { statuses, members } = useProject();
+    const { statuses, members, customFields } = useProject();
     const sort = settings.sort ?? { column: 'position', direction: 'asc' };
-    const columns = (Object.keys(TABLE_COLUMNS) as TaskColumn[]).filter(
-        (column) => settings.columns?.includes(column),
+    const columns = tableColumns(customFields).filter((column) =>
+        settings.columns?.includes(column),
     );
     const sorted = sortTasks(
         tasks,
@@ -44,6 +70,7 @@ export function TableView({
         sort.direction,
         statuses,
         members,
+        customFields,
     );
 
     // Click once for ascending, again for descending, a third time to reset.
@@ -90,7 +117,11 @@ export function TableView({
                         <tr>
                             {header('title', 'Name', 'min-w-72')}
                             {columns.map((column) =>
-                                header(column, TABLE_COLUMNS[column], 'w-36'),
+                                header(
+                                    column,
+                                    columnLabel(column, customFields),
+                                    'w-36',
+                                ),
                             )}
                         </tr>
                     </thead>
@@ -120,10 +151,18 @@ export function TableView({
     );
 }
 
-function TableRow({ task, columns }: { task: Task; columns: TaskColumn[] }) {
-    const { openTask } = useProject();
+function TableRow({ task, columns }: { task: Task; columns: Column[] }) {
+    const { openTask, customFields } = useProject();
 
-    const cell = (column: TaskColumn) => {
+    const cell = (column: Column) => {
+        const field = fieldForColumn(column, customFields);
+
+        if (field) {
+            return (
+                <CustomFieldInput task={task} field={field} variant="cell" />
+            );
+        }
+
         switch (column) {
             case 'status':
                 return <StatusPicker task={task} />;
@@ -139,6 +178,8 @@ function TableRow({ task, columns }: { task: Task; columns: TaskColumn[] }) {
                         {formatDateTime(task.created_at)}
                     </span>
                 );
+            default:
+                return null;
         }
     };
 

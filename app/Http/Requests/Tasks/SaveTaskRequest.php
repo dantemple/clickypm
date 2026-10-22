@@ -4,6 +4,7 @@ namespace App\Http\Requests\Tasks;
 
 use App\Enums\TaskPriority;
 use App\Models\Attachment;
+use App\Models\CustomField;
 use App\Models\Project;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,8 @@ class SaveTaskRequest extends FormRequest
         $project = $this->route('project');
         $required = $this->isMethod('post') ? 'required' : 'sometimes';
 
+        $fields = $project->customFields;
+
         return [
             'title' => [$required, 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:20000'],
@@ -33,6 +36,11 @@ class SaveTaskRequest extends FormRequest
             'due_date' => ['sometimes', 'nullable', 'date'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES],
+            // Values keyed by field id, for fields the project uses.
+            'custom_fields' => $fields->isEmpty()
+                ? ['prohibited']
+                : ['sometimes', 'array:'.$fields->implode('id', ',')],
+            ...$fields->mapWithKeys(fn (CustomField $field) => ["custom_fields.{$field->id}" => $field->valueRules()]),
         ];
     }
 }

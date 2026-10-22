@@ -17,6 +17,8 @@ const PROJECT_PROPS = [
     'views',
     'view',
     'statuses',
+    'customFields',
+    'workspaceFields',
     'tasks',
     'requests',
     'members',

@@ -10,6 +10,7 @@ use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\ProjectView;
 use App\Models\Status;
+use App\Models\TaskActivity;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +28,13 @@ class ProjectViewController extends Controller
     private const COLUMNS = ['status', 'assignee', 'priority', 'due_date', 'created_at'];
 
     /**
+     * Ids of the workspace fields clients may see, once looked up.
+     *
+     * @var array<int, int>|null
+     */
+    private ?array $clientFieldIds = null;
+
+    /**
      * Show a project through one of its saved views.
      */
     public function show(Request $request, Team $current_team, Project $project, ProjectView $view): Response
@@ -36,10 +44,14 @@ class ProjectViewController extends Controller
         $user = $request->user();
         $isClient = $user->isClientOf($current_team);
         $openTask = $request->filled('task') ? $project->tasks()->find($request->integer('task')) : null;
+        $customFields = $project->customFields()->visibleTo($isClient)->get();
 
         $tasks = fn (bool $requests) => $project->tasks()
             ->where('needs_triage', $requests)
-            ->with('creator:id,name')
+            ->with([
+                'creator:id,name',
+                'customFieldValues' => fn ($query) => $query->whereIn('custom_field_id', $customFields->modelKeys()),
+            ])
             ->withCount([
                 'comments' => fn ($query) => $query->visibleTo($isClient),
                 'subtasks',
@@ -64,6 +76,12 @@ class ProjectViewController extends Controller
             'views' => $project->views->map->toViewData(),
             'view' => $view->toViewData(),
             'statuses' => $project->statuses->map(fn (Status $status) => $status->only(['id', 'name', 'color', 'is_done'])),
+            'customFields' => $customFields->map->toFieldData(),
+            // Everything the workspace defines, for choosing what the project uses.
+            'workspaceFields' => fn () => $user->can('update', $project)
+                ? $current_team->customFields->map->toFieldData()
+                : [],
+            'canManageFields' => $user->can('update', $current_team),
             'tasks' => fn () => $tasks(false),
             'requests' => fn () => $tasks(true),
             'openTaskId' => $openTask?->id,
@@ -79,7 +97,11 @@ class ProjectViewController extends Controller
                 : [],
             'maxUploadMegabytes' => Attachment::MAX_KILOBYTES / 1024,
             'activity' => fn () => $openTask
-                ? $openTask->activities()->with('user:id,name')->get()->map->toActivityData()
+                ? $openTask->activities()->with('user:id,name')->get()
+                    ->when($isClient, fn ($activities) => $activities->reject(
+                        fn (TaskActivity $activity) => $this->hiddenFromClients($activity, $current_team),
+                    ))
+                    ->map->toActivityData()->values()
                 : [],
             'members' => $current_team->members()
                 ->orderBy('name')
@@ -93,6 +115,21 @@ class ProjectViewController extends Controller
                 ]),
             'priorities' => TaskPriority::options(),
         ]);
+    }
+
+    /**
+     * Whether a history entry is about a custom field clients can't see,
+     * including fields that have since been deleted.
+     */
+    private function hiddenFromClients(TaskActivity $activity, Team $team): bool
+    {
+        if ($activity->type !== 'custom_field') {
+            return false;
+        }
+
+        $this->clientFieldIds ??= $team->customFields()->visibleTo(true)->pluck('id')->all();
+
+        return ! in_array($activity->data['field_id'] ?? null, $this->clientFieldIds, true);
     }
 
     /**
@@ -125,16 +162,19 @@ class ProjectViewController extends Controller
     {
         Gate::authorize('update', $project);
 
+        // Custom fields the project uses can be shown and sorted as columns too.
+        $columns = [...self::COLUMNS, ...$project->customFields()->pluck('custom_fields.id')->map(fn (int $id) => "field_{$id}")];
+
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:100'],
             'settings' => ['sometimes', 'array'],
             'settings.show_closed' => ['sometimes', 'boolean'],
             'settings.group_by' => ['sometimes', Rule::in(['status', 'priority', 'assignee'])],
             'settings.sort' => ['sometimes', 'array'],
-            'settings.sort.column' => ['required_with:settings.sort', Rule::in(['position', 'title', ...self::COLUMNS])],
+            'settings.sort.column' => ['required_with:settings.sort', Rule::in(['position', 'title', ...$columns])],
             'settings.sort.direction' => ['required_with:settings.sort', Rule::in(['asc', 'desc'])],
             'settings.columns' => ['sometimes', 'array'],
-            'settings.columns.*' => [Rule::in(self::COLUMNS)],
+            'settings.columns.*' => [Rule::in($columns)],
         ]);
 
         if (isset($validated['name'])) {
