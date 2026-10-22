@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BoardView } from '@/components/views/board-view';
 import { ListView } from '@/components/views/list-view';
 import { TABLE_COLUMNS, TableView } from '@/components/views/table-view';
 import { createTask, formatFileSize, matchesSearch } from '@/lib/tasks';
@@ -363,9 +364,13 @@ export default function ProjectShow({
 
                 <div className="min-h-0 flex-1 overflow-y-auto">
                     <RequestsInbox requests={requests} />
-                    {view.type === 'list' ? (
+                    {view.type === 'list' && (
                         <ListView tasks={visibleTasks} settings={settings} />
-                    ) : (
+                    )}
+                    {view.type === 'board' && (
+                        <BoardView tasks={visibleTasks} settings={settings} />
+                    )}
+                    {view.type === 'table' && (
                         <TableView
                             tasks={visibleTasks}
                             settings={settings}

@@ -35,6 +35,7 @@ Route::prefix('{current_team}')
         Route::post('projects/{project}/tasks', [TaskController::class, 'store'])->name('projects.tasks.store');
         Route::patch('projects/{project}/tasks/{task}', [TaskController::class, 'update'])->name('projects.tasks.update');
         Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy'])->name('projects.tasks.destroy');
+        Route::post('projects/{project}/tasks/{task}/move', [TaskController::class, 'move'])->name('projects.tasks.move');
         Route::post('projects/{project}/tasks/{task}/accept', [TaskController::class, 'accept'])->name('projects.tasks.accept');
 
         Route::post('projects/{project}/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('projects.tasks.subtasks.store');

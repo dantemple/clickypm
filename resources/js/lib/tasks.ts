@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import {
     accept as acceptTaskRoute,
     destroy as destroyTaskRoute,
+    move as moveTaskRoute,
     store as storeTaskRoute,
     update as updateTaskRoute,
 } from '@/routes/projects/tasks';
@@ -76,6 +77,20 @@ export function updateTask(task: Task, data: TaskInput): void {
         updateTaskRoute.url({ project: task.project_id, task: task.id }),
         data,
         visitOptions,
+    );
+}
+
+/** Put a task in a status column; `order` is that column's ids, top to bottom. */
+export function moveTask(
+    task: Task,
+    statusId: number,
+    order: number[],
+    onFinish?: () => void,
+): void {
+    router.post(
+        moveTaskRoute.url({ project: task.project_id, task: task.id }),
+        { status_id: statusId, order },
+        { ...visitOptions, onFinish },
     );
 }
 

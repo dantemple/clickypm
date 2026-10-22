@@ -1,5 +1,13 @@
 import { Link, router } from '@inertiajs/react';
-import { ChevronDown, List, Pencil, Plus, Sheet, Trash2 } from 'lucide-react';
+import {
+    ChevronDown,
+    Kanban,
+    List,
+    Pencil,
+    Plus,
+    Sheet,
+    Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
     DropdownMenu,
@@ -19,6 +27,7 @@ import type { Project, ProjectView, ViewType } from '@/types';
 
 export const VIEW_ICONS: Record<ViewType, typeof List> = {
     list: List,
+    board: Kanban,
     table: Sheet,
 };
 

@@ -10,8 +10,11 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class TaskController extends Controller
@@ -59,6 +62,47 @@ class TaskController extends Controller
         Gate::authorize('update', $project);
 
         $task->update($request->safe()->except('attachments'));
+
+        return back();
+    }
+
+    /**
+     * Drop a task into a status column at a given spot (the Board view).
+     *
+     * `order` is the destination column's task ids from top to bottom,
+     * including the moved task. Those tasks swap their existing position
+     * numbers around, so the order also holds in the List and Table views.
+     */
+    public function move(Request $request, Team $current_team, Project $project, Task $task): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        $validated = $request->validate([
+            'status_id' => ['required', 'integer', Rule::exists('statuses', 'id')->where('project_id', $project->id)],
+            'order' => ['required', 'array', 'max:1000', Rule::contains([$task->id])],
+            'order.*' => ['integer', 'distinct', Rule::exists('tasks', 'id')->where('project_id', $project->id)],
+        ]);
+
+        DB::transaction(function () use ($project, $task, $validated) {
+            $tasks = $project->tasks()->whereKey($validated['order'])->lockForUpdate()->get()->keyBy('id');
+            $positions = $tasks->pluck('position')->sort()->values();
+            $previous = null;
+
+            foreach (array_values($validated['order']) as $index => $id) {
+                // Keep positions strictly increasing even if some were tied.
+                $position = $previous === null ? $positions[$index] : max($positions[$index], $previous + 1);
+                $previous = $position;
+
+                $moving = $tasks[$id];
+                $moving->position = $position;
+
+                if ($moving->is($task)) {
+                    $moving->status_id = $validated['status_id'];
+                }
+
+                $moving->save();
+            }
+        });
 
         return back();
     }

@@ -29,7 +29,7 @@ class ProjectTest extends TestCase
 
         $this->assertSame('Website', $project->name);
         $this->assertSame(['To do', 'In progress', 'Review', 'Done'], $project->statuses->pluck('name')->all());
-        $this->assertSame(['list', 'table'], $project->views->pluck('type.value')->all());
+        $this->assertSame(['list', 'board', 'table'], $project->views->pluck('type.value')->all());
     }
 
     public function test_project_view_page_includes_tasks_statuses_and_members()
@@ -51,7 +51,7 @@ class ProjectTest extends TestCase
                 ->where('project.id', $project->id)
                 ->where('view.type', 'list')
                 ->where('view.settings.group_by', 'status')
-                ->has('views', 2)
+                ->has('views', 3)
                 ->has('statuses', 4)
                 ->has('tasks', 3)
                 ->has('members', 1),

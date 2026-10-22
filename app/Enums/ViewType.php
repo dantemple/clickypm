@@ -5,6 +5,7 @@ namespace App\Enums;
 enum ViewType: string
 {
     case List = 'list';
+    case Board = 'board';
     case Table = 'table';
 
     /**
@@ -26,6 +27,9 @@ enum ViewType: string
             self::List => [
                 'group_by' => 'status',
                 'show_closed' => false,
+            ],
+            self::Board => [
+                'show_closed' => true,
             ],
             self::Table => [
                 'sort' => ['column' => 'position', 'direction' => 'asc'],

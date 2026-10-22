@@ -1,4 +1,4 @@
-export type ViewType = 'list' | 'table';
+export type ViewType = 'list' | 'board' | 'table';
 
 export type GroupBy = 'status' | 'priority' | 'assignee';
 

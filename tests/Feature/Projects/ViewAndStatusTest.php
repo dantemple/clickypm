@@ -60,7 +60,9 @@ class ViewAndStatusTest extends TestCase
         $user = User::factory()->create();
         $team = $user->currentTeam;
         $project = Project::factory()->for($team)->create();
-        [$list, $table] = $project->views;
+        [$list, $board, $table] = $project->views;
+
+        $this->actingAs($user)->delete(route('projects.views.destroy', [$team, $project, $board]));
 
         $this->actingAs($user)
             ->delete(route('projects.views.destroy', [$team, $project, $table]))
