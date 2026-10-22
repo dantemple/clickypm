@@ -39,9 +39,7 @@ class ProjectFactory extends Factory
                 $project->statuses()->create([...$status, 'position' => $position]);
             }
 
-            foreach (ViewType::cases() as $position => $type) {
-                $project->views()->create(['name' => $type->label(), 'type' => $type, 'position' => $position]);
-            }
+            $project->views()->create(['name' => ViewType::List->label(), 'type' => ViewType::List, 'position' => 0]);
         });
     }
 }

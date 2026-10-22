@@ -38,8 +38,8 @@ export default function CreateProjectModal({ children }: PropsWithChildren) {
                             <DialogHeader>
                                 <DialogTitle>Create a project</DialogTitle>
                                 <DialogDescription>
-                                    Projects hold tasks and come with a List and
-                                    a Table view.
+                                    Projects start with a List view. Add Board
+                                    or Table views later with “+ View”.
                                 </DialogDescription>
                             </DialogHeader>
 

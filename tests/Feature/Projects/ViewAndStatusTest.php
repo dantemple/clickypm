@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Projects;
 
+use App\Enums\ViewType;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -60,9 +61,8 @@ class ViewAndStatusTest extends TestCase
         $user = User::factory()->create();
         $team = $user->currentTeam;
         $project = Project::factory()->for($team)->create();
-        [$list, $board, $table] = $project->views;
-
-        $this->actingAs($user)->delete(route('projects.views.destroy', [$team, $project, $board]));
+        $list = $project->views()->sole();
+        $table = $project->views()->create(['name' => 'Table', 'type' => ViewType::Table, 'position' => 1]);
 
         $this->actingAs($user)
             ->delete(route('projects.views.destroy', [$team, $project, $table]))

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class CreateProject
 {
     /**
-     * Create a project with the default statuses and one view of each type.
+     * Create a project with the default statuses and a List view.
      */
     public function handle(User $user, Team $team, string $name, ?string $color = null, ?string $description = null): Project
     {
@@ -27,13 +27,12 @@ class CreateProject
                 $project->statuses()->create([...$status, 'position' => $position]);
             }
 
-            foreach (ViewType::cases() as $position => $type) {
-                $project->views()->create([
-                    'name' => $type->label(),
-                    'type' => $type,
-                    'position' => $position,
-                ]);
-            }
+            // Everyone starts on a List; Board and Table can be added with "+ View".
+            $project->views()->create([
+                'name' => ViewType::List->label(),
+                'type' => ViewType::List,
+                'position' => 0,
+            ]);
 
             return $project;
         });

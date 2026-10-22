@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Actions\Projects\CreateProject;
+use App\Enums\ViewType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Projects\SaveProjectRequest;
 use App\Models\Project;
@@ -35,17 +36,22 @@ class ProjectController extends Controller
     }
 
     /**
-     * Open the project's first view, passing along any ?task= to open.
+     * Open the project on its List view, passing along any ?task= to open.
      */
     public function show(Request $request, Team $current_team, Project $project): RedirectResponse
     {
         Gate::authorize('view', $project);
 
+        // Open on a List view, whatever order the tabs are in; fall back to
+        // the first tab if the project's List views have all been removed.
+        $view = $project->views()->where('type', ViewType::List)->first()
+            ?? $project->views()->firstOrFail();
+
         // Keep ?task= so links from emails open straight onto that task.
         return to_route('projects.views.show', [
             $current_team,
             $project,
-            $project->views()->firstOrFail(),
+            $view,
             ...$request->only('task'),
         ]);
     }

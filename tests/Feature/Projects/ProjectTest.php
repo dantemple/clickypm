@@ -3,6 +3,7 @@
 namespace Tests\Feature\Projects;
 
 use App\Enums\TeamRole;
+use App\Enums\ViewType;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -29,7 +30,7 @@ class ProjectTest extends TestCase
 
         $this->assertSame('Website', $project->name);
         $this->assertSame(['To do', 'In progress', 'Review', 'Done'], $project->statuses->pluck('name')->all());
-        $this->assertSame(['list', 'board', 'table'], $project->views->pluck('type.value')->all());
+        $this->assertSame(['list'], $project->views->pluck('type.value')->all());
     }
 
     public function test_project_view_page_includes_tasks_statuses_and_members()
@@ -51,11 +52,31 @@ class ProjectTest extends TestCase
                 ->where('project.id', $project->id)
                 ->where('view.type', 'list')
                 ->where('view.settings.group_by', 'status')
-                ->has('views', 3)
+                ->has('views', 1)
                 ->has('statuses', 4)
                 ->has('tasks', 3)
                 ->has('members', 1),
             );
+    }
+
+    public function test_opening_a_project_lands_on_a_list_view_whatever_the_tab_order()
+    {
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+        $project = Project::factory()->for($team)->create();
+        $list = $project->views()->sole();
+        $list->update(['position' => 5]);
+        $project->views()->create(['name' => 'Board', 'type' => ViewType::Board, 'position' => 0]);
+
+        $this->actingAs($user)
+            ->get(route('projects.show', [$team, $project]))
+            ->assertRedirect(route('projects.views.show', [$team, $project, $list]));
+
+        $list->delete();
+
+        $this->actingAs($user)
+            ->get(route('projects.show', [$team, $project]))
+            ->assertRedirect(route('projects.views.show', [$team, $project, $project->views()->sole()]));
     }
 
     public function test_projects_are_shared_with_the_sidebar()
