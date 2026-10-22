@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One line in a task's history, e.g. "Dan moved this from To do to Review".
@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $user_id
  * @property string $type
  * @property array<string, mixed>|null $data
- * @property Carbon|null $created_at
+ * @property CarbonImmutable|null $created_at
  * @property-read Task $task
  * @property-read User|null $user
  */

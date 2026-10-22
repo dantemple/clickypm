@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -22,12 +22,15 @@ use Illuminate\Support\Facades\Storage;
  * @property bool $hidden_from_clients
  * @property int $position
  * @property int|null $created_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  * @property-read Team $team
  * @property-read Collection<int, Status> $statuses
  * @property-read Collection<int, ProjectView> $views
  * @property-read Collection<int, Task> $tasks
+ * @property-read int|null $tasks_count
+ * @property-read int|null $done_tasks_count
+ * @property-read int|null $requests_count
  */
 #[Fillable(['name', 'color', 'description', 'hidden_from_clients', 'position', 'created_by'])]
 class Project extends Model

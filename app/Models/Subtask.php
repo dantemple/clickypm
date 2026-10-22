@@ -2,21 +2,21 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property int $task_id
  * @property string $title
  * @property int|null $assignee_id
- * @property Carbon|null $due_date
+ * @property CarbonImmutable|null $due_date
  * @property int $position
- * @property Carbon|null $completed_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $completed_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  * @property-read Task $task
  */
 #[Fillable(['title', 'assignee_id', 'due_date', 'position', 'completed_at'])]

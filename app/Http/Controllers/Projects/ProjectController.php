@@ -21,7 +21,13 @@ class ProjectController extends Controller
     {
         Gate::authorize('create', [Project::class, $current_team]);
 
-        $project = $createProject->handle($request->user(), $current_team, $request->validated());
+        $project = $createProject->handle(
+            $request->user(),
+            $current_team,
+            $request->validated('name'),
+            $request->validated('color'),
+            $request->validated('description'),
+        );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project created.')]);
 

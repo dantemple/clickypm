@@ -31,9 +31,13 @@ class SyncProjectStatuses
                     'position' => $position,
                 ];
 
-                $status = isset($row['id']) && $existing->has($row['id'])
-                    ? tap($existing->get($row['id']))->update($attributes)
-                    : $project->statuses()->create($attributes);
+                $status = isset($row['id']) ? $existing->get($row['id']) : null;
+
+                if ($status) {
+                    $status->update($attributes);
+                } else {
+                    $status = $project->statuses()->create($attributes);
+                }
 
                 $kept->push($status);
             }

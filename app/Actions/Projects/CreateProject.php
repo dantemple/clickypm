@@ -13,14 +13,12 @@ class CreateProject
 {
     /**
      * Create a project with the default statuses and one view of each type.
-     *
-     * @param  array{name: string, color?: string|null, description?: string|null}  $attributes
      */
-    public function handle(User $user, Team $team, array $attributes): Project
+    public function handle(User $user, Team $team, string $name, ?string $color = null, ?string $description = null): Project
     {
-        return DB::transaction(function () use ($user, $team, $attributes) {
+        return DB::transaction(function () use ($user, $team, $name, $color, $description) {
             $project = $team->projects()->create([
-                ...array_filter($attributes, fn ($value) => $value !== null),
+                ...array_filter(['name' => $name, 'color' => $color, 'description' => $description], fn ($value) => $value !== null),
                 'position' => (int) $team->projects()->max('position') + 1,
                 'created_by' => $user->id,
             ]);

@@ -21,7 +21,7 @@ class TaskFactory extends Factory
     {
         return [
             'project_id' => Project::factory(),
-            'status_id' => fn (array $attributes) => Project::find($attributes['project_id'])->defaultStatus()->id,
+            'status_id' => fn (array $attributes) => Project::whereKey($attributes['project_id'])->firstOrFail()->defaultStatus()->id,
             'title' => rtrim(fake()->sentence(fake()->numberBetween(3, 7)), '.'),
             'description' => fake()->optional()->paragraph(),
             'priority' => fake()->optional()->randomElement(TaskPriority::cases()),

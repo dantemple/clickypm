@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Status;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Project>
@@ -22,7 +23,7 @@ class ProjectFactory extends Factory
     {
         return [
             'team_id' => Team::factory(),
-            'name' => fake()->catchPhrase(),
+            'name' => Str::title(fake()->word().' '.fake()->word()),
             'color' => fake()->hexColor(),
             'description' => fake()->optional()->sentence(),
         ];
