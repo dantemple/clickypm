@@ -143,6 +143,8 @@ function describeActivity({ type, data }: Activity): ReactNode {
             return 'requested this task';
         case 'accepted':
             return 'accepted the request';
+        case 'restored':
+            return 'restored this task from the trash';
         case 'status':
             return (
                 <>

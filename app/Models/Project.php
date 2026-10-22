@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\Trashable;
 use Carbon\CarbonImmutable;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int|null $created_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $deleted_at
  * @property-read Team $team
  * @property-read Collection<int, Status> $statuses
  * @property-read Collection<int, ProjectView> $views
@@ -36,15 +38,16 @@ use Illuminate\Support\Facades\Storage;
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
-    use HasFactory;
+    use HasFactory, Trashable;
 
     /**
      * Bootstrap the model and its traits.
      */
     protected static function booted(): void
     {
-        // Tasks and attachment rows cascade in the database; remove the files as well.
-        static::deleted(fn (Project $project) => Storage::disk(config('filesystems.attachments'))
+        // Trashed projects keep everything; once deleted for good, tasks and
+        // attachment rows cascade away in the database and the files go here.
+        static::forceDeleted(fn (Project $project) => Storage::disk(config('filesystems.attachments'))
             ->deleteDirectory(Attachment::directoryFor($project->id)));
     }
 

@@ -56,7 +56,7 @@ function SettingsForm({
     const deleteProject = () => {
         if (
             confirm(
-                `Delete “${project.name}” and all of its tasks? This cannot be undone.`,
+                `Move “${project.name}” and all of its tasks to the trash? Admins can restore it from Trash for 30 days.`,
             )
         ) {
             router.delete(destroy.url({ project: project.id }));

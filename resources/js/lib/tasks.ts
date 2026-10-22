@@ -11,6 +11,7 @@ import {
     destroy as destroyCommentRoute,
     store as storeCommentRoute,
 } from '@/routes/projects/tasks/comments';
+import { restore as restoreTrashedTaskRoute } from '@/routes/trash/tasks';
 import {
     destroy as destroyAttachmentRoute,
     store as storeAttachmentRoute,
@@ -94,10 +95,35 @@ export function moveTask(
     );
 }
 
-export function deleteTask(task: Task, onSuccess?: () => void): void {
+/**
+ * Move a task to the trash. No confirmation needed: the toast offers Undo,
+ * and the task stays in the workspace's Trash for 30 days either way.
+ */
+export function deleteTask(
+    task: Task,
+    { message, onSuccess }: { message: string; onSuccess?: () => void },
+): void {
     router.delete(
         destroyTaskRoute.url({ project: task.project_id, task: task.id }),
-        { ...visitOptions, onSuccess },
+        {
+            ...visitOptions,
+            onSuccess: () => {
+                onSuccess?.();
+                toast.success(message, {
+                    description: task.title,
+                    duration: 8000,
+                    action: {
+                        label: 'Undo',
+                        onClick: () =>
+                            router.post(
+                                restoreTrashedTaskRoute.url({ task: task.id }),
+                                {},
+                                visitOptions,
+                            ),
+                    },
+                });
+            },
+        },
     );
 }
 

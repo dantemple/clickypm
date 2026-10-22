@@ -182,18 +182,24 @@ class AttachmentTest extends TestCase
         $this->assertSame(['bug.png'], $request->attachments()->pluck('name')->all());
     }
 
-    public function test_deleting_a_task_or_project_removes_its_files()
+    public function test_files_survive_the_trash_and_go_when_deleted_for_good()
     {
         $this->upload($this->owner, [UploadedFile::fake()->image('a.png')]);
         $path = $this->task->attachments()->value('path');
 
         $this->actingAs($this->owner)->delete(route('projects.tasks.destroy', [$this->team, $this->project, $this->task]));
+        Storage::disk('local')->assertExists($path);
+
+        $this->actingAs($this->owner)->delete(route('trash.tasks.destroy', [$this->team, $this->task]));
         Storage::disk('local')->assertMissing($path);
 
         $other = Task::factory()->for($this->project)->create();
         $otherPath = Attachment::store($other, UploadedFile::fake()->image('b.png'), $this->owner)->path;
 
         $this->actingAs($this->owner)->delete(route('projects.destroy', [$this->team, $this->project]));
+        Storage::disk('local')->assertExists($otherPath);
+
+        $this->actingAs($this->owner)->delete(route('trash.projects.destroy', [$this->team, $this->project]));
         Storage::disk('local')->assertMissing($otherPath);
     }
 
@@ -236,7 +242,7 @@ class AttachmentTest extends TestCase
         $this->project->update(['hidden_from_clients' => true]);
         $this->actingAs($this->client)->get($this->route('projects.tasks.attachments.download', $pdf))->assertForbidden();
 
-        $this->actingAs($this->owner)->delete(route('projects.destroy', [$this->team, $this->project]));
+        $this->project->forceDelete();
         Storage::disk('s3')->assertMissing($pdf->path);
     }
 

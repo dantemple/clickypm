@@ -63,15 +63,15 @@ class ProjectController extends Controller
     }
 
     /**
-     * Delete the project and everything in it.
+     * Move the project, with everything in it, to the trash.
      */
     public function destroy(Request $request, Team $current_team, Project $project): RedirectResponse
     {
         Gate::authorize('delete', $project);
 
-        $project->delete();
+        $project->moveToTrash($request->user());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project deleted.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project moved to the trash.')]);
 
         return to_route('dashboard', $current_team);
     }

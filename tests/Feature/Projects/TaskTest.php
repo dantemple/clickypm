@@ -114,7 +114,7 @@ class TaskTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_tasks_can_be_deleted()
+    public function test_deleted_tasks_go_to_the_trash()
     {
         $user = User::factory()->create();
         $project = Project::factory()->for($user->currentTeam)->create();
@@ -124,6 +124,6 @@ class TaskTest extends TestCase
             ->delete(route('projects.tasks.destroy', [$user->currentTeam, $project, $task]))
             ->assertRedirect();
 
-        $this->assertModelMissing($task);
+        $this->assertSoftDeleted($task);
     }
 }

@@ -18,11 +18,8 @@ export function RequestsInbox({ requests }: { requests: Task[] }) {
         return null;
     }
 
-    const decline = (task: Task) => {
-        if (confirm(`Decline and delete the request “${task.title}”?`)) {
-            deleteTask(task);
-        }
-    };
+    const decline = (task: Task) =>
+        deleteTask(task, { message: 'Request declined' });
 
     return (
         <section className="mx-4 mt-4 overflow-hidden rounded-lg border border-amber-300/70 bg-amber-50/60 dark:border-amber-500/30 dark:bg-amber-500/5">

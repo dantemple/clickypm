@@ -9,6 +9,7 @@ use App\Http\Controllers\Projects\ProjectViewController;
 use App\Http\Controllers\Projects\SubtaskController;
 use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Controllers\TrashController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +50,19 @@ Route::prefix('{current_team}')
 
         Route::post('projects/{project}/tasks/{task}/comments', [CommentController::class, 'store'])->name('projects.tasks.comments.store');
         Route::delete('projects/{project}/tasks/{task}/comments/{comment}', [CommentController::class, 'destroy'])->name('projects.tasks.comments.destroy');
+    });
+
+// Trashed models can't be found through the workspace's relations, so these
+// routes bind them directly and TrashController checks the workspace.
+Route::prefix('{current_team}/trash')
+    ->middleware(['auth', 'verified', EnsureTeamMembership::class])
+    ->name('trash.')
+    ->group(function () {
+        Route::get('/', [TrashController::class, 'index'])->name('index');
+        Route::post('tasks/{task}/restore', [TrashController::class, 'restoreTask'])->name('tasks.restore')->withTrashed();
+        Route::delete('tasks/{task}', [TrashController::class, 'destroyTask'])->name('tasks.destroy')->withTrashed();
+        Route::post('projects/{project}/restore', [TrashController::class, 'restoreProject'])->name('projects.restore')->withTrashed();
+        Route::delete('projects/{project}', [TrashController::class, 'destroyProject'])->name('projects.destroy')->withTrashed();
     });
 
 Route::middleware(['auth'])->group(function () {

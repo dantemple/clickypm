@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\Trashable;
 use App\Enums\TaskPriority;
 use Carbon\CarbonImmutable;
 use Database\Factories\TaskFactory;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Storage;
  * @property CarbonImmutable|null $completed_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $deleted_at
  * @property-read Project $project
  * @property-read Status $status
  * @property-read User|null $assignee
@@ -45,7 +47,7 @@ use Illuminate\Support\Facades\Storage;
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory;
+    use HasFactory, Trashable;
 
     /**
      * Bootstrap the model and its traits.
@@ -65,8 +67,11 @@ class Task extends Model
 
         static::created(fn (Task $task) => $task->recordActivity($task->needs_triage ? 'requested' : 'created'));
 
-        // Attachment rows go with the task (cascade); their files need removing too.
-        static::deleted(fn (Task $task) => Storage::disk(config('filesystems.attachments'))
+        static::restored(fn (Task $task) => $task->recordActivity('restored'));
+
+        // Trashed tasks keep their files; once deleted for good the attachment
+        // rows cascade away in the database and the files are removed here.
+        static::forceDeleted(fn (Task $task) => Storage::disk(config('filesystems.attachments'))
             ->deleteDirectory(Attachment::directoryFor($task->project_id, $task->id)));
 
         static::updated(function (Task $task) {

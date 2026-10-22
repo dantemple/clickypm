@@ -37,7 +37,8 @@ class TaskController extends Controller
             'status_id' => $project->defaultStatus()->id,
             ...($isClient ? Arr::only($fields, ['title', 'description']) : $fields),
             'needs_triage' => $isClient,
-            'position' => (int) $project->tasks()->max('position') + 1,
+            // Count trashed tasks so a restored one never shares a position.
+            'position' => (int) $project->tasks()->withTrashed()->max('position') + 1,
             'created_by' => $request->user()->id,
         ]);
 
@@ -80,7 +81,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'status_id' => ['required', 'integer', Rule::exists('statuses', 'id')->where('project_id', $project->id)],
             'order' => ['required', 'array', 'max:1000', Rule::contains([$task->id])],
-            'order.*' => ['integer', 'distinct', Rule::exists('tasks', 'id')->where('project_id', $project->id)],
+            'order.*' => ['integer', 'distinct', Rule::exists('tasks', 'id')->where('project_id', $project->id)->whereNull('deleted_at')],
         ]);
 
         DB::transaction(function () use ($project, $task, $validated) {
@@ -122,13 +123,13 @@ class TaskController extends Controller
     }
 
     /**
-     * Delete a task (or decline a client request).
+     * Move a task (or a declined client request) to the trash.
      */
-    public function destroy(Team $current_team, Project $project, Task $task): RedirectResponse
+    public function destroy(Request $request, Team $current_team, Project $project, Task $task): RedirectResponse
     {
         Gate::authorize('update', $project);
 
-        $task->delete();
+        $task->moveToTrash($request->user());
 
         return back();
     }

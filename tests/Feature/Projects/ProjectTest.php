@@ -109,7 +109,7 @@ class ProjectTest extends TestCase
         $this->assertSame('#ef4444', $project->fresh()->color);
     }
 
-    public function test_only_admins_can_delete_a_project()
+    public function test_only_admins_can_move_a_project_to_the_trash()
     {
         $owner = User::factory()->create();
         $team = $owner->currentTeam;
@@ -126,7 +126,8 @@ class ProjectTest extends TestCase
             ->delete(route('projects.destroy', [$team, $project]))
             ->assertRedirect(route('dashboard', $team));
 
-        $this->assertModelMissing($project);
-        $this->assertDatabaseCount('tasks', 0);
+        $this->assertSoftDeleted($project);
+        $this->assertSame($owner->id, $project->fresh()->deleted_by);
+        $this->assertDatabaseCount('tasks', 1);
     }
 }

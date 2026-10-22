@@ -33,6 +33,14 @@ class TeamPolicy
     }
 
     /**
+     * Determine whether the user can see the team's trash. Clients can't.
+     */
+    public function viewTrash(User $user, Team $team): bool
+    {
+        return $user->belongsToTeam($team) && ! $user->isClientOf($team);
+    }
+
+    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, Team $team): bool

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Trash2 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavProjects } from '@/components/nav-projects';
@@ -15,6 +15,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as trashIndex } from '@/routes/trash';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
@@ -23,12 +24,23 @@ export function AppSidebar() {
         ? dashboard(page.props.currentTeam.slug)
         : '/';
 
+    const currentTeam = page.props.currentTeam;
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
             href: dashboardUrl,
             icon: LayoutGrid,
         },
+        // Clients can't delete anything, so they have no trash to look at.
+        ...(currentTeam && currentTeam.role !== 'client'
+            ? [
+                  {
+                      title: 'Trash',
+                      href: trashIndex(currentTeam.slug),
+                      icon: Trash2,
+                  },
+              ]
+            : []),
     ];
 
     return (

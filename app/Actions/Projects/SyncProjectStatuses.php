@@ -45,15 +45,16 @@ class SyncProjectStatuses
             $existing->except($kept->pluck('id')->all())->each(function (Status $removed) use ($kept) {
                 $target = $kept->firstWhere('is_done', $removed->is_done) ?? $kept->first();
 
-                $removed->tasks()->update(['status_id' => $target->id]);
+                // Include trashed tasks: they still point at this status.
+                $removed->tasks()->withTrashed()->update(['status_id' => $target->id]);
                 $removed->delete();
             });
 
             // Re-evaluate completion for tasks whose status flipped between open and done.
             foreach ($kept as $status) {
                 $status->is_done
-                    ? $status->tasks()->whereNull('completed_at')->update(['completed_at' => now()])
-                    : $status->tasks()->whereNotNull('completed_at')->update(['completed_at' => null]);
+                    ? $status->tasks()->withTrashed()->whereNull('completed_at')->update(['completed_at' => now()])
+                    : $status->tasks()->withTrashed()->whereNotNull('completed_at')->update(['completed_at' => null]);
             }
         });
     }

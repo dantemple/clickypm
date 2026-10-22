@@ -89,11 +89,8 @@ function TaskDetails({
         }
     };
 
-    const remove = (verb: string) => {
-        if (confirm(`${verb} “${task.title}”?`)) {
-            deleteTask(task, onClose);
-        }
-    };
+    const remove = (message: string) =>
+        deleteTask(task, { message, onSuccess: onClose });
 
     return (
         <>
@@ -142,7 +139,7 @@ function TaskDetails({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => remove('Decline and delete')}
+                                onClick={() => remove('Request declined')}
                             >
                                 <X /> Decline
                             </Button>
@@ -246,7 +243,7 @@ function TaskDetails({
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => remove('Delete')}
+                        onClick={() => remove('Task moved to the trash')}
                     >
                         <Trash2 /> Delete
                     </Button>
