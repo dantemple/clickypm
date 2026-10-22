@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Maximize2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { AddTaskRow } from '@/components/tasks/add-task-row';
 import { TaskBadges } from '@/components/tasks/task-badges';
@@ -11,6 +11,7 @@ import {
     StatusToggle,
 } from '@/components/tasks/pickers';
 import { formatDateTime, updateTask } from '@/lib/tasks';
+import { useSyncedDraft } from '@/hooks/use-synced-draft';
 import { cn } from '@/lib/utils';
 import { sortTasks } from '@/lib/views';
 import type { SortColumn, Task, TaskColumn, ViewSettings } from '@/types';
@@ -173,15 +174,14 @@ function TableRow({ task, columns }: { task: Task; columns: TaskColumn[] }) {
 /** Spreadsheet-style title cell: edit in place, commit on Enter or blur. */
 function TitleInput({ task }: { task: Task }) {
     const { canEdit, openTask } = useProject();
-    const [title, setTitle] = useState(task.title);
-    const [previous, setPrevious] = useState(task.title);
+    // Follows changes made elsewhere (the task sheet, other people) unless
+    // you're typing in it.
+    const {
+        draft: title,
+        setDraft: setTitle,
+        focusProps,
+    } = useSyncedDraft(task.title);
     const cancelled = useRef(false);
-
-    // Pick up changes made elsewhere (e.g. in the task sheet).
-    if (task.title !== previous) {
-        setPrevious(task.title);
-        setTitle(task.title);
-    }
 
     const commit = () => {
         const trimmed = title.trim();
@@ -220,7 +220,11 @@ function TitleInput({ task }: { task: Task }) {
                 task.completed_at && 'text-muted-foreground line-through',
             )}
             onChange={(event) => setTitle(event.target.value)}
-            onBlur={commit}
+            onFocus={focusProps.onFocus}
+            onBlur={() => {
+                focusProps.onBlur();
+                commit();
+            }}
             onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                     event.currentTarget.blur();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use App\Concerns\Trashable;
 use App\Enums\TaskPriority;
 use Carbon\CarbonImmutable;
@@ -47,7 +48,7 @@ use Illuminate\Support\Facades\Storage;
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory, Trashable;
+    use HasFactory, SendsLiveUpdates, Trashable;
 
     /**
      * Bootstrap the model and its traits.
@@ -280,5 +281,15 @@ class Task extends Model
             'due_date' => 'date',
             'completed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [$this->project_id, $this->id];
     }
 }

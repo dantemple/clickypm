@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use App\Enums\ViewType;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['name', 'type', 'position', 'settings'])]
 class ProjectView extends Model
 {
+    use SendsLiveUpdates;
+
     /**
      * Get the project the view belongs to.
      *
@@ -74,5 +77,15 @@ class ProjectView extends Model
         return [
             'type' => ViewType::class,
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [$this->project_id, null];
     }
 }

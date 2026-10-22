@@ -1,5 +1,4 @@
 import { Check, Inbox, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import {
     AssigneePicker,
@@ -19,6 +18,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { useSyncedDraft } from '@/hooks/use-synced-draft';
 import {
     acceptTask,
     deleteTask,
@@ -70,8 +70,17 @@ function TaskDetails({
     onClose: () => void;
 }) {
     const { project, canEdit } = useProject();
-    const [title, setTitle] = useState(task.title);
-    const [description, setDescription] = useState(task.description ?? '');
+    // Both follow other people's edits, except while you're typing in them.
+    const {
+        draft: title,
+        setDraft: setTitle,
+        focusProps: titleFocus,
+    } = useSyncedDraft(task.title);
+    const {
+        draft: description,
+        setDraft: setDescription,
+        focusProps: descriptionFocus,
+    } = useSyncedDraft(task.description ?? '');
 
     const saveTitle = () => {
         const trimmed = title.trim();
@@ -112,7 +121,11 @@ function TaskDetails({
                         aria-label="Task name"
                         className="field-sizing-content resize-none bg-transparent text-xl font-semibold outline-none"
                         onChange={(event) => setTitle(event.target.value)}
-                        onBlur={saveTitle}
+                        onFocus={titleFocus.onFocus}
+                        onBlur={() => {
+                            titleFocus.onBlur();
+                            saveTitle();
+                        }}
                         onKeyDown={(event) => {
                             if (event.key === 'Enter') {
                                 event.preventDefault();
@@ -212,7 +225,11 @@ function TaskDetails({
                         placeholder="Add more detail…"
                         className="min-h-32 resize-y rounded-md border bg-transparent p-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                         onChange={(event) => setDescription(event.target.value)}
-                        onBlur={saveDescription}
+                        onFocus={descriptionFocus.onFocus}
+                        onBlur={() => {
+                            descriptionFocus.onBlur();
+                            saveDescription();
+                        }}
                     />
                 ) : (
                     <p className="text-sm whitespace-pre-wrap text-muted-foreground">

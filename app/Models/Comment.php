@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['user_id', 'body', 'is_internal'])]
 class Comment extends Model
 {
+    use SendsLiveUpdates;
+
     /**
      * Get the task the comment belongs to.
      *
@@ -78,5 +81,15 @@ class Comment extends Model
         return [
             'is_internal' => 'boolean',
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [(int) $this->task()->withTrashed()->value('project_id'), $this->task_id];
     }
 }

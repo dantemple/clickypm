@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'color', 'position', 'is_done'])]
 class Status extends Model
 {
+    use SendsLiveUpdates;
+
     /**
      * The statuses every new project starts with.
      *
@@ -64,5 +67,15 @@ class Status extends Model
         return [
             'is_done' => 'boolean',
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [$this->project_id, null];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use App\Concerns\Trashable;
 use Carbon\CarbonImmutable;
 use Database\Factories\ProjectFactory;
@@ -38,7 +39,7 @@ use Illuminate\Support\Facades\Storage;
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
-    use HasFactory, Trashable;
+    use HasFactory, SendsLiveUpdates, Trashable;
 
     /**
      * Bootstrap the model and its traits.
@@ -119,5 +120,15 @@ class Project extends Model
         return [
             'hidden_from_clients' => 'boolean',
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [$this->id, null];
     }
 }

@@ -43,6 +43,7 @@ import { ListView } from '@/components/views/list-view';
 import { TABLE_COLUMNS, TableView } from '@/components/views/table-view';
 import { createTask, formatFileSize, matchesSearch } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
+import { useProjectLiveUpdates } from '@/lib/live-updates';
 import { saveViewSettings } from '@/lib/views';
 import { show as showProject } from '@/routes/projects';
 import { show as showView } from '@/routes/projects/views';
@@ -105,6 +106,8 @@ export default function ProjectShow({
 }: Props) {
     const [search, setSearch] = useState('');
     const [selectedTaskId, setSelectedTaskId] = useState(openTaskId);
+
+    useProjectLiveUpdates(project.id, selectedTaskId);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [statusesOpen, setStatusesOpen] = useState(false);
     const [newTaskOpen, setNewTaskOpen] = useState(false);

@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
+import { useWorkspaceLiveUpdates } from '@/lib/live-updates';
 import type { BreadcrumbItem } from '@/types';
 import { setUrlDefaults } from '@/wayfinder';
 
@@ -18,7 +19,14 @@ export default function AppLayout({
 
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
+            {currentTeam && <WorkspaceLiveUpdates teamId={currentTeam.id} />}
             {children}
         </AppLayoutTemplate>
     );
+}
+
+function WorkspaceLiveUpdates({ teamId }: { teamId: number }) {
+    useWorkspaceLiveUpdates(teamId);
+
+    return null;
 }

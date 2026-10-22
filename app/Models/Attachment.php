@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,8 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
 #[Fillable(['user_id', 'disk', 'path', 'name', 'mime_type', 'size'])]
 class Attachment extends Model
 {
+    use SendsLiveUpdates;
+
     /**
      * Largest file accepted, in kilobytes. Keep below PHP's upload_max_filesize.
      */
@@ -156,5 +159,15 @@ class Attachment extends Model
             'download_url' => route('projects.tasks.attachments.download', $route),
             'preview_url' => $this->isPreviewable() ? route('projects.tasks.attachments.preview', $route) : null,
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [(int) $this->task()->withTrashed()->value('project_id'), $this->task_id];
     }
 }

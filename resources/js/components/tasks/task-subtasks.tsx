@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { AssigneeMenu, DueDateButton } from '@/components/tasks/pickers';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useSyncedDraft } from '@/hooks/use-synced-draft';
 import {
     createSubtask,
     deleteSubtask,
@@ -66,7 +67,11 @@ export function TaskSubtasks({
 
 function SubtaskRow({ task, subtask }: { task: Task; subtask: Subtask }) {
     const { canEdit } = useProject();
-    const [title, setTitle] = useState(subtask.title);
+    const {
+        draft: title,
+        setDraft: setTitle,
+        focusProps,
+    } = useSyncedDraft(subtask.title);
     const done = !!subtask.completed_at;
 
     const saveTitle = () => {
@@ -100,7 +105,11 @@ function SubtaskRow({ task, subtask }: { task: Task; subtask: Subtask }) {
                         done && 'text-muted-foreground line-through',
                     )}
                     onChange={(event) => setTitle(event.target.value)}
-                    onBlur={saveTitle}
+                    onFocus={focusProps.onFocus}
+                    onBlur={() => {
+                        focusProps.onBlur();
+                        saveTitle();
+                    }}
                     onKeyDown={(event) =>
                         event.key === 'Enter' && event.currentTarget.blur()
                     }

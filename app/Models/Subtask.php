@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SendsLiveUpdates;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['title', 'assignee_id', 'due_date', 'position', 'completed_at'])]
 class Subtask extends Model
 {
+    use SendsLiveUpdates;
+
     /**
      * Bootstrap the model and its traits.
      */
@@ -79,5 +82,15 @@ class Subtask extends Model
             'due_date' => 'date',
             'completed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The project (and task) live updates for this model go to.
+     *
+     * @return array{0: int, 1: int|null}
+     */
+    public function liveUpdateTarget(): array
+    {
+        return [(int) $this->task()->withTrashed()->value('project_id'), $this->task_id];
     }
 }
