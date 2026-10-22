@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Membership> $memberships
  * @property-read Collection<int, User> $members
  * @property-read Collection<int, Project> $projects
+ * @property-read Collection<int, CustomField> $customFields
  */
 #[Fillable(['name', 'slug', 'is_personal'])]
 class Team extends Model
@@ -104,6 +105,16 @@ class Team extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Get the custom fields defined for this workspace.
+     *
+     * @return HasMany<CustomField, $this>
+     */
+    public function customFields(): HasMany
+    {
+        return $this->hasMany(CustomField::class)->orderBy('id');
     }
 
     /**

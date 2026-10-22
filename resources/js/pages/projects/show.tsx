@@ -9,9 +9,11 @@ import {
     Plus,
     Search,
     Settings,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { useState } from 'react';
 import { ProjectContext } from '@/components/projects/project-context';
+import { ProjectFieldsDialog } from '@/components/projects/project-fields-dialog';
 import { ProjectSettingsDialog } from '@/components/projects/project-settings-dialog';
 import { StatusesDialog } from '@/components/projects/statuses-dialog';
 import { ViewTabs } from '@/components/projects/view-tabs';
@@ -40,7 +42,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BoardView } from '@/components/views/board-view';
 import { ListView } from '@/components/views/list-view';
-import { TABLE_COLUMNS, TableView } from '@/components/views/table-view';
+import {
+    TableView,
+    columnLabel,
+    tableColumns,
+} from '@/components/views/table-view';
 import { createTask, formatFileSize, matchesSearch } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
 import { useProjectLiveUpdates } from '@/lib/live-updates';
@@ -51,6 +57,7 @@ import type {
     Activity,
     Attachment,
     Comment,
+    CustomField,
     GroupBy,
     Member,
     PriorityOption,
@@ -59,7 +66,6 @@ import type {
     Status,
     Subtask,
     Task,
-    TaskColumn,
     ViewSettings,
 } from '@/types';
 
@@ -69,6 +75,9 @@ type Props = {
     views: ProjectView[];
     view: ProjectView;
     statuses: Status[];
+    customFields: CustomField[];
+    workspaceFields: CustomField[];
+    canManageFields: boolean;
     tasks: Task[];
     requests: Task[];
     openTaskId: number | null;
@@ -93,6 +102,9 @@ export default function ProjectShow({
     views,
     view,
     statuses,
+    customFields,
+    workspaceFields,
+    canManageFields,
     tasks,
     requests,
     openTaskId,
@@ -110,6 +122,7 @@ export default function ProjectShow({
     useProjectLiveUpdates(project.id, selectedTaskId);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [statusesOpen, setStatusesOpen] = useState(false);
+    const [fieldsOpen, setFieldsOpen] = useState(false);
     const [newTaskOpen, setNewTaskOpen] = useState(false);
 
     // Clients can't change the team's saved views, so their tweaks stay local.
@@ -186,6 +199,7 @@ export default function ProjectShow({
                 statuses,
                 members,
                 priorities,
+                customFields,
                 canEdit,
                 openTask: (task) => selectTask(task.id),
             }}
@@ -235,6 +249,11 @@ export default function ProjectShow({
                                     onSelect={() => setStatusesOpen(true)}
                                 >
                                     <ListChecks /> Edit statuses
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => setFieldsOpen(true)}
+                                >
+                                    <SlidersHorizontal /> Custom fields
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -310,10 +329,14 @@ export default function ProjectShow({
                                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                                     Show columns
                                 </DropdownMenuLabel>
-                                {(
-                                    Object.keys(TABLE_COLUMNS) as TaskColumn[]
-                                ).map((column) => {
-                                    const columns = settings.columns ?? [];
+                                {tableColumns(customFields).map((column) => {
+                                    // Drop columns for fields the project
+                                    // no longer uses, so the save validates.
+                                    const columns = (
+                                        settings.columns ?? []
+                                    ).filter((c) =>
+                                        tableColumns(customFields).includes(c),
+                                    );
 
                                     return (
                                         <DropdownMenuCheckboxItem
@@ -333,7 +356,7 @@ export default function ProjectShow({
                                                 })
                                             }
                                         >
-                                            {TABLE_COLUMNS[column]}
+                                            {columnLabel(column, customFields)}
                                         </DropdownMenuCheckboxItem>
                                     );
                                 })}
@@ -419,6 +442,15 @@ export default function ProjectShow({
                         statuses={statuses}
                         open={statusesOpen}
                         onOpenChange={setStatusesOpen}
+                    />
+
+                    <ProjectFieldsDialog
+                        project={project}
+                        enabled={customFields}
+                        workspaceFields={workspaceFields}
+                        canManageFields={canManageFields}
+                        open={fieldsOpen}
+                        onOpenChange={setFieldsOpen}
                     />
                 </>
             )}

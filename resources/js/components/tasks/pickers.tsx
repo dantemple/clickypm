@@ -389,10 +389,12 @@ export function DueDateButton({
     date,
     overdue,
     onChange,
+    label = 'Due date',
 }: {
     date: string | null;
     overdue: boolean;
     onChange: (date: string | null) => void;
+    label?: string;
 }) {
     const { canEdit } = useProject();
     const input = useRef<HTMLInputElement>(null);
@@ -432,7 +434,7 @@ export function DueDateButton({
                 ref={input}
                 type="date"
                 tabIndex={-1}
-                aria-label="Due date"
+                aria-label={label}
                 className="pointer-events-none absolute inset-0 opacity-0"
                 value={date ?? ''}
                 onClick={(event) => event.stopPropagation()}

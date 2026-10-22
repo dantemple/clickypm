@@ -9,7 +9,10 @@ export type TaskColumn =
     | 'due_date'
     | 'created_at';
 
-export type SortColumn = 'position' | 'title' | TaskColumn;
+/** A table column showing one of the project's custom fields. */
+export type FieldColumn = `field_${number}`;
+
+export type SortColumn = 'position' | 'title' | TaskColumn | FieldColumn;
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -17,7 +20,7 @@ export type ViewSettings = {
     show_closed: boolean;
     group_by?: GroupBy;
     sort?: { column: SortColumn; direction: SortDirection };
-    columns?: TaskColumn[];
+    columns?: (TaskColumn | FieldColumn)[];
 };
 
 export type ProjectView = {
@@ -57,6 +60,35 @@ export type Status = {
     is_done: boolean;
 };
 
+export type CustomFieldType =
+    | 'text'
+    | 'number'
+    | 'date'
+    | 'dropdown'
+    | 'checkbox'
+    | 'url';
+
+export type CustomFieldTypeOption = {
+    value: CustomFieldType;
+    label: string;
+};
+
+export type CustomFieldOption = {
+    id: string;
+    name: string;
+    color: string;
+};
+
+export type CustomField = {
+    id: number;
+    name: string;
+    type: CustomFieldType;
+    options: CustomFieldOption[];
+    hidden_from_clients: boolean;
+};
+
+export type CustomFieldValue = string | number | boolean;
+
 export type Member = {
     id: number;
     name: string;
@@ -89,6 +121,8 @@ export type Task = {
     subtasks_count: number;
     subtasks_done_count: number;
     attachments_count: number;
+    /** Values keyed by custom field id; unset fields are missing. */
+    custom_fields: Record<number, CustomFieldValue>;
     created_at: string;
     updated_at: string;
 };
@@ -142,7 +176,7 @@ export type TaskInput = Partial<
         | 'assignee_id'
         | 'due_date'
     >
->;
+> & { custom_fields?: Record<number, CustomFieldValue | null> };
 
 export type DashboardTask = Task & {
     project: ProjectSummary;

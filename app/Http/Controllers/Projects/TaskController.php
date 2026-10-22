@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Projects;
 
+use App\Actions\Tasks\SaveCustomFieldValues;
 use App\Actions\Tasks\SendTaskNotifications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tasks\SaveTaskRequest;
@@ -25,13 +26,13 @@ class TaskController extends Controller
      * Clients can only suggest a title and description; their tasks wait in
      * the project's request inbox until someone on the team triages them.
      */
-    public function store(SaveTaskRequest $request, Team $current_team, Project $project, SendTaskNotifications $notifications): RedirectResponse
+    public function store(SaveTaskRequest $request, Team $current_team, Project $project, SendTaskNotifications $notifications, SaveCustomFieldValues $customFields): RedirectResponse
     {
         Gate::authorize('view', $project);
 
         $isClient = $request->user()->isClientOf($current_team);
 
-        $fields = $request->safe()->except('attachments');
+        $fields = $request->safe()->except(['attachments', 'custom_fields']);
 
         $task = $project->tasks()->create([
             'status_id' => $project->defaultStatus()->id,
@@ -41,6 +42,10 @@ class TaskController extends Controller
             'position' => (int) $project->tasks()->withTrashed()->max('position') + 1,
             'created_by' => $request->user()->id,
         ]);
+
+        if (! $isClient) {
+            $customFields->handle($task, $request->validated('custom_fields', []));
+        }
 
         foreach ($request->file('attachments', []) as $file) {
             Attachment::store($task, $file, $request->user());
@@ -58,11 +63,13 @@ class TaskController extends Controller
     /**
      * Update one or more of a task's fields.
      */
-    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task): RedirectResponse
+    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, SaveCustomFieldValues $customFields): RedirectResponse
     {
         Gate::authorize('update', $project);
 
-        $task->update($request->safe()->except('attachments'));
+        $task->update($request->safe()->except(['attachments', 'custom_fields']));
+
+        $customFields->handle($task, $request->validated('custom_fields', []));
 
         return back();
     }
