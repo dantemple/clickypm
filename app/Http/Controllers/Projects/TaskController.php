@@ -51,6 +51,10 @@ class TaskController extends Controller
             Attachment::store($task, $file, $request->user());
         }
 
+        if ($task->assignee_id) {
+            $notifications->taskAssigned($task, $request->user());
+        }
+
         if ($isClient) {
             $notifications->clientRequestCreated($task);
 
@@ -63,13 +67,17 @@ class TaskController extends Controller
     /**
      * Update one or more of a task's fields.
      */
-    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, SaveCustomFieldValues $customFields): RedirectResponse
+    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, SaveCustomFieldValues $customFields, SendTaskNotifications $notifications): RedirectResponse
     {
         Gate::authorize('update', $project);
 
         $task->update($request->safe()->except(['attachments', 'custom_fields']));
 
         $customFields->handle($task, $request->validated('custom_fields', []));
+
+        if ($task->wasChanged('assignee_id') && $task->assignee_id) {
+            $notifications->taskAssigned($task, $request->user());
+        }
 
         return back();
     }

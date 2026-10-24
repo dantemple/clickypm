@@ -9,6 +9,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Tasks\ClientRequestCreated;
 use App\Notifications\Tasks\CommentPosted;
+use App\Notifications\Tasks\TaskAssigned;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 
@@ -17,11 +18,24 @@ use Illuminate\Support\Facades\Notification;
  *
  * A task's followers are its creator, its assignee and everyone who has
  * commented on it. Nobody is told about their own activity, clients never
- * hear about internal notes, and nobody is emailed about a project they
- * can no longer see.
+ * hear about internal notes, nobody is emailed about a project they can no
+ * longer see, and people who turned task emails off in their settings hear
+ * nothing at all.
  */
 class SendTaskNotifications
 {
+    /**
+     * Tell someone a task has just been assigned to them.
+     */
+    public function taskAssigned(Task $task, ?User $actor): void
+    {
+        if (! $task->assignee) {
+            return;
+        }
+
+        $this->send(collect([$task->assignee]), $task, $actor, new TaskAssigned($task, $actor));
+    }
+
     /**
      * Tell the team a client has asked for something.
      */
@@ -92,6 +106,7 @@ class SendTaskNotifications
         $recipients = $recipients
             ->unique('id')
             ->reject(fn (User $user) => $user->is($actor))
+            ->filter(fn (User $user) => $user->task_emails)
             ->filter(fn (User $user) => $user->can('view', $task->project))
             ->values();
 
