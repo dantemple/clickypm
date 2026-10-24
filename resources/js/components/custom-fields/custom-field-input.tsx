@@ -1,8 +1,7 @@
 import { Check, ExternalLink, X } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { DueDateButton } from '@/components/tasks/pickers';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
@@ -12,7 +11,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { useSyncedDraft } from '@/hooks/use-synced-draft';
 import {
     fieldValue,
@@ -61,38 +59,14 @@ export function CustomFieldInput({
                 />
             );
         case 'date':
-            return variant === 'cell' ? (
+            return (
                 <DueDateButton
                     date={value === null ? null : String(value)}
                     overdue={false}
                     label={field.name}
+                    placeholder={variant === 'sheet' ? 'Empty' : undefined}
                     onChange={(date) => setFieldValue(task, field, date)}
                 />
-            ) : (
-                <span className="flex items-center gap-2">
-                    <Input
-                        type="date"
-                        aria-label={field.name}
-                        className="h-8 w-44"
-                        value={value === null ? '' : String(value)}
-                        onChange={(event) =>
-                            setFieldValue(
-                                task,
-                                field,
-                                event.target.value || null,
-                            )
-                        }
-                    />
-                    {value !== null && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setFieldValue(task, field, null)}
-                        >
-                            Clear
-                        </Button>
-                    )}
-                </span>
             );
         default:
             return <TextValue task={task} field={field} variant={variant} />;
@@ -189,7 +163,7 @@ function DropdownValue({
                     <OptionChip option={current} />
                 ) : (
                     <span className="text-muted-foreground/60">
-                        {variant === 'sheet' ? 'Select…' : '—'}
+                        {variant === 'sheet' ? 'Empty' : '—'}
                     </span>
                 )}
             </DropdownMenuTrigger>
@@ -232,7 +206,10 @@ function DropdownValue({
     );
 }
 
-/** Text, number and link fields: edit in place, save on Enter or blur. */
+/**
+ * Text, number and link fields. In a table cell they're always an input;
+ * in the panel they read as text until clicked. Enter or blur saves.
+ */
 function TextValue({
     task,
     field,
@@ -247,6 +224,7 @@ function TextValue({
     // Follows other people's edits, except while you're typing in it.
     const { draft, setDraft, focusProps } = useSyncedDraft(saved);
     const cancelled = useRef(false);
+    const [editing, setEditing] = useState(variant === 'cell');
 
     const commit = () => {
         const trimmed = draft.trim();
@@ -281,15 +259,20 @@ function TextValue({
             className={cn(
                 'min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground/60',
                 variant === 'sheet'
-                    ? 'h-8 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring'
+                    ? '-mx-2 h-7 rounded px-2 text-sm focus:ring-2 focus:ring-ring'
                     : 'h-7 w-full min-w-28 rounded px-1 focus:bg-background focus:ring-2 focus:ring-ring',
             )}
             onClick={(event) => event.stopPropagation()}
             onChange={(event) => setDraft(event.target.value)}
+            autoFocus={variant === 'sheet'}
             onFocus={focusProps.onFocus}
             onBlur={() => {
                 focusProps.onBlur();
                 commit();
+
+                if (variant === 'sheet') {
+                    setEditing(false);
+                }
             }}
             onKeyDown={(event) => {
                 if (event.key === 'Enter') {
@@ -304,6 +287,37 @@ function TextValue({
         />
     );
 
+    const openLink = value !== null && field.type === 'url' && (
+        <a
+            href={String(value)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open link"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={(event) => event.stopPropagation()}
+        >
+            <ExternalLink className="size-3.5" />
+        </a>
+    );
+
+    if (!editing) {
+        return (
+            <span className="flex min-w-0 items-center gap-1">
+                <button
+                    type="button"
+                    className={cn(
+                        '-mx-2 min-w-0 flex-1 truncate rounded px-2 py-0.5 text-left text-sm hover:bg-muted/50',
+                        value === null && 'text-muted-foreground/60',
+                    )}
+                    onClick={() => setEditing(true)}
+                >
+                    {formatFieldValue(field, value) ?? 'Empty'}
+                </button>
+                {openLink}
+            </span>
+        );
+    }
+
     if (field.type !== 'url' || value === null) {
         return variant === 'sheet' ? (
             <span className="flex">{input}</span>
@@ -315,16 +329,7 @@ function TextValue({
     return (
         <span className="flex items-center gap-1">
             {input}
-            <a
-                href={String(value)}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Open link"
-                className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={(event) => event.stopPropagation()}
-            >
-                <ExternalLink className="size-3.5" />
-            </a>
+            {openLink}
         </span>
     );
 }

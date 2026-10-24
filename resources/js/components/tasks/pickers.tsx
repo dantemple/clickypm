@@ -374,33 +374,53 @@ export function PriorityPicker({
     );
 }
 
-export function DueDatePicker({ task }: { task: Task }) {
+export function DueDatePicker({
+    task,
+    placeholder,
+}: {
+    task: Task;
+    placeholder?: string;
+}) {
     return (
         <DueDateButton
             date={task.due_date}
             overdue={isOverdue(task)}
+            placeholder={placeholder}
             onChange={(date) => updateTask(task, { due_date: date })}
         />
     );
 }
 
-/** A calendar icon (plus the date, once set) that opens the native date picker. */
+/**
+ * A calendar icon (plus the date, once set) that opens the native date
+ * picker. Pass a placeholder to say something while there's no date.
+ */
 export function DueDateButton({
     date,
     overdue,
     onChange,
     label = 'Due date',
+    placeholder,
 }: {
     date: string | null;
     overdue: boolean;
     onChange: (date: string | null) => void;
     label?: string;
+    placeholder?: string;
 }) {
     const { canEdit } = useProject();
     const input = useRef<HTMLInputElement>(null);
 
     if (!canEdit) {
-        return date ? (
+        if (!date) {
+            return placeholder ? (
+                <span className="text-sm text-muted-foreground/60">
+                    {placeholder}
+                </span>
+            ) : null;
+        }
+
+        return (
             <span
                 className={cn(
                     'flex items-center gap-1.5 text-sm whitespace-nowrap',
@@ -410,7 +430,7 @@ export function DueDateButton({
                 <CalendarDays className="size-4" />
                 {formatDue(date)}
             </span>
-        ) : null;
+        );
     }
 
     return (
@@ -428,7 +448,7 @@ export function DueDateButton({
                 }}
             >
                 <CalendarDays className="size-4" />
-                {date && formatDue(date)}
+                {date ? formatDue(date) : placeholder}
             </button>
             <input
                 ref={input}
