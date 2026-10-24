@@ -10,6 +10,7 @@ use App\Http\Controllers\Projects\ProjectStatusController;
 use App\Http\Controllers\Projects\ProjectViewController;
 use App\Http\Controllers\Projects\SubtaskController;
 use App\Http\Controllers\Projects\TaskController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\TrashController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -22,6 +23,7 @@ Route::prefix('{current_team}')
     ->scopeBindings()
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+        Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
 
         Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
         Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
