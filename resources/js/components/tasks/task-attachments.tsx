@@ -1,35 +1,44 @@
 import { usePage } from '@inertiajs/react';
-import { Download, FileText, Paperclip, Trash2, Upload } from 'lucide-react';
-import type { DragEvent } from 'react';
+import { Download, FileText, Trash2, Upload } from 'lucide-react';
+import type { DragEvent, ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useProject } from '@/components/projects/project-context';
-import { Button } from '@/components/ui/button';
 import {
     deleteAttachment,
     formatDateTime,
     formatFileSize,
     uploadAttachment,
 } from '@/lib/tasks';
-import { cn } from '@/lib/utils';
 import type { Attachment, Task } from '@/types';
 
-export function TaskAttachments({
-    task,
-    attachments,
-}: {
-    task: Task;
-    attachments: Attachment[];
-}) {
+export type UploadProgress = {
+    name: string;
+    percent: number;
+    remaining: number;
+};
+
+/**
+ * Everything needed to add files to a task: a hidden file input to render,
+ * a way to open it, drag-and-drop handlers for a drop zone, and progress
+ * while files go up.
+ */
+export function useAttachmentUpload(task: Task): {
+    input: ReactNode;
+    openPicker: () => void;
+    dragging: boolean;
+    dragProps: {
+        onDragOver: (event: DragEvent) => void;
+        onDragLeave: () => void;
+        onDrop: (event: DragEvent) => void;
+    };
+    progress: UploadProgress | null;
+} {
     const { maxUploadMegabytes } = usePage<{ maxUploadMegabytes: number }>()
         .props;
-    const input = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [dragging, setDragging] = useState(false);
-    const [upload, setUpload] = useState<{
-        name: string;
-        percent: number;
-        remaining: number;
-    } | null>(null);
+    const [progress, setProgress] = useState<UploadProgress | null>(null);
 
     // Inertia runs one request at a time, so send files one after another.
     const uploadAll = (files: File[]) => {
@@ -49,15 +58,19 @@ export function TaskAttachments({
             const file = queue.shift();
 
             if (!file) {
-                setUpload(null);
+                setProgress(null);
 
                 return;
             }
 
-            setUpload({ name: file.name, percent: 0, remaining: queue.length });
+            setProgress({
+                name: file.name,
+                percent: 0,
+                remaining: queue.length,
+            });
             uploadAttachment(task, file, {
                 onProgress: (percent) =>
-                    setUpload((current) =>
+                    setProgress((current) =>
                         current ? { ...current, percent } : current,
                     ),
                 onFinish: next,
@@ -67,97 +80,89 @@ export function TaskAttachments({
         next();
     };
 
-    const onDrop = (event: DragEvent) => {
-        event.preventDefault();
-        setDragging(false);
-        uploadAll(Array.from(event.dataTransfer.files));
-    };
-
-    return (
-        <div
-            className={cn(
-                'flex flex-col gap-2 border-t p-4 transition-colors',
-                dragging && 'bg-primary/5 ring-2 ring-primary/40 ring-inset',
-            )}
-            onDragOver={(event) => {
+    return {
+        input: (
+            <input
+                ref={inputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(event) => {
+                    uploadAll(Array.from(event.target.files ?? []));
+                    event.target.value = '';
+                }}
+            />
+        ),
+        openPicker: () => inputRef.current?.click(),
+        dragging,
+        dragProps: {
+            onDragOver: (event) => {
                 event.preventDefault();
                 setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
-        >
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">
-                    Attachments{' '}
-                    {attachments.length > 0 && (
-                        <span className="font-normal text-muted-foreground">
-                            {attachments.length}
-                        </span>
-                    )}
-                </h3>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={!!upload}
-                    onClick={() => input.current?.click()}
-                >
-                    <Paperclip /> Attach files
-                </Button>
-                <input
-                    ref={input}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(event) => {
-                        uploadAll(Array.from(event.target.files ?? []));
-                        event.target.value = '';
-                    }}
-                />
-            </div>
+            },
+            onDragLeave: () => setDragging(false),
+            onDrop: (event) => {
+                event.preventDefault();
+                setDragging(false);
+                uploadAll(Array.from(event.dataTransfer.files));
+            },
+        },
+        progress,
+    };
+}
 
-            {upload && (
+/** The files on a task, one row each. */
+export function TaskAttachments({
+    task,
+    attachments,
+    progress,
+}: {
+    task: Task;
+    attachments: Attachment[];
+    progress: UploadProgress | null;
+}) {
+    return (
+        <section className="flex flex-col gap-2 border-t px-4 py-3">
+            <h3 className="text-sm font-medium">
+                Attachments{' '}
+                {attachments.length > 0 && (
+                    <span className="font-normal text-muted-foreground">
+                        {attachments.length}
+                    </span>
+                )}
+            </h3>
+
+            <ul className="flex flex-col">
+                {attachments.map((attachment) => (
+                    <AttachmentRow
+                        key={attachment.id}
+                        task={task}
+                        attachment={attachment}
+                    />
+                ))}
+            </ul>
+
+            {progress && (
                 <div className="flex items-center gap-3 rounded-md border px-3 py-2 text-xs">
                     <Upload className="size-4 shrink-0 animate-pulse text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate">
-                        Uploading {upload.name}
-                        {upload.remaining > 0 &&
-                            ` (${upload.remaining} more queued)`}
+                        Uploading {progress.name}
+                        {progress.remaining > 0 &&
+                            ` (${progress.remaining} more queued)`}
                     </span>
                     <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
                         <div
                             className="h-full rounded-full bg-primary transition-[width]"
-                            style={{ width: `${upload.percent}%` }}
+                            style={{ width: `${progress.percent}%` }}
                         />
                     </div>
                 </div>
             )}
-
-            {attachments.length === 0 && !upload ? (
-                <button
-                    type="button"
-                    className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground hover:bg-muted/40"
-                    onClick={() => input.current?.click()}
-                >
-                    Drop files here or click to attach (up to{' '}
-                    {maxUploadMegabytes} MB each)
-                </button>
-            ) : (
-                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {attachments.map((attachment) => (
-                        <AttachmentCard
-                            key={attachment.id}
-                            task={task}
-                            attachment={attachment}
-                        />
-                    ))}
-                </ul>
-            )}
-        </div>
+        </section>
     );
 }
 
-function AttachmentCard({
+function AttachmentRow({
     task,
     attachment,
 }: {
@@ -167,69 +172,81 @@ function AttachmentCard({
     const { auth } = usePage().props;
     const { canEdit } = useProject();
     const canDelete = canEdit || attachment.user?.id === auth.user.id;
+
+    return (
+        <li className="group -mx-1 flex items-center gap-3 rounded-md px-1 py-1.5 hover:bg-muted/50">
+            <Thumbnail attachment={attachment} />
+            <div className="min-w-0 flex-1">
+                <a
+                    href={attachment.download_url}
+                    className="block truncate text-sm font-medium hover:underline"
+                >
+                    {attachment.name}
+                </a>
+                <p className="truncate text-xs text-muted-foreground">
+                    {formatFileSize(attachment.size)} ·{' '}
+                    {attachment.user?.name ?? 'Someone'} ·{' '}
+                    {formatDateTime(attachment.created_at)}
+                </p>
+            </div>
+            <a
+                href={attachment.download_url}
+                title="Download"
+                className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100"
+            >
+                <Download className="size-3.5" />
+            </a>
+            {canDelete && (
+                <button
+                    type="button"
+                    title="Delete"
+                    className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-destructive focus-visible:opacity-100"
+                    onClick={() =>
+                        confirm(`Delete ${attachment.name}?`) &&
+                        deleteAttachment(task, attachment)
+                    }
+                >
+                    <Trash2 className="size-3.5" />
+                </button>
+            )}
+        </li>
+    );
+}
+
+/** A small preview for images, a file icon for everything else. */
+function Thumbnail({ attachment }: { attachment: Attachment }) {
+    const [broken, setBroken] = useState(false);
     const extension = attachment.name.includes('.')
         ? attachment.name.split('.').pop()?.slice(0, 4).toUpperCase()
         : null;
 
-    return (
-        <li
-            className="group relative overflow-hidden rounded-md border"
-            title={`${attachment.name}\n${formatFileSize(attachment.size)} · ${attachment.user?.name ?? 'Someone'} · ${formatDateTime(attachment.created_at)}`}
-        >
+    if (attachment.preview_url && !broken) {
+        return (
             <a
-                href={attachment.preview_url ?? attachment.download_url}
-                target={attachment.preview_url ? '_blank' : undefined}
+                href={attachment.preview_url}
+                target="_blank"
                 rel="noreferrer"
-                className="flex aspect-[4/3] items-center justify-center bg-muted/50"
+                className="shrink-0"
             >
-                {attachment.preview_url ? (
-                    <img
-                        src={attachment.preview_url}
-                        alt={attachment.name}
-                        loading="lazy"
-                        className="size-full object-cover"
-                    />
-                ) : (
-                    <span className="flex flex-col items-center gap-1 text-muted-foreground">
-                        <FileText className="size-7" />
-                        {extension && (
-                            <span className="text-[10px] font-semibold">
-                                {extension}
-                            </span>
-                        )}
-                    </span>
-                )}
+                <img
+                    src={attachment.preview_url}
+                    alt=""
+                    loading="lazy"
+                    className="size-9 rounded border object-cover"
+                    onError={() => setBroken(true)}
+                />
             </a>
-            <div className="flex items-center gap-1 border-t px-2 py-1.5">
-                <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium">
-                        {attachment.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                        {formatFileSize(attachment.size)}
-                    </p>
-                </div>
-                <a
-                    href={attachment.download_url}
-                    title="Download"
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                    <Download className="size-3.5" />
-                </a>
-                {canDelete && (
-                    <button
-                        type="button"
-                        title="Delete"
-                        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
-                        onClick={() =>
-                            confirm(`Delete ${attachment.name}?`) &&
-                            deleteAttachment(task, attachment)
-                        }
-                    >
-                        <Trash2 className="size-3.5" />
-                    </button>
-                )}
-            </div>
-        </li>
+        );
+    }
+
+    return (
+        <span className="flex size-9 shrink-0 flex-col items-center justify-center rounded border bg-muted/50 text-muted-foreground">
+            <FileText className="size-4" />
+            {extension && (
+                <span className="text-[8px] leading-none font-semibold">
+                    {extension}
+                </span>
+            )}
+        </span>
     );
 }

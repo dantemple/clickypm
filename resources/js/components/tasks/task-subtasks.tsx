@@ -13,22 +13,24 @@ import {
 import { cn } from '@/lib/utils';
 import type { Subtask, Task } from '@/types';
 
+/**
+ * The task's checklist. The panel only shows it once there are subtasks,
+ * or when someone has just asked to add one (`autoFocus`).
+ */
 export function TaskSubtasks({
     task,
     subtasks,
+    autoFocus = false,
 }: {
     task: Task;
     subtasks: Subtask[];
+    autoFocus?: boolean;
 }) {
     const { canEdit } = useProject();
     const done = subtasks.filter((subtask) => subtask.completed_at).length;
 
-    if (!canEdit && subtasks.length === 0) {
-        return null;
-    }
-
     return (
-        <div className="flex flex-col gap-2 border-t p-4">
+        <section className="flex flex-col gap-2 border-t px-4 py-3">
             <div className="flex items-center gap-3">
                 <h3 className="text-sm font-medium">
                     Subtasks{' '}
@@ -60,8 +62,8 @@ export function TaskSubtasks({
                 ))}
             </ul>
 
-            {canEdit && <AddSubtask task={task} />}
-        </div>
+            {canEdit && <AddSubtask task={task} autoFocus={autoFocus} />}
+        </section>
     );
 }
 
@@ -157,7 +159,7 @@ function SubtaskRow({ task, subtask }: { task: Task; subtask: Subtask }) {
 }
 
 /** Enter adds the subtask and keeps the box open for the next one. */
-function AddSubtask({ task }: { task: Task }) {
+function AddSubtask({ task, autoFocus }: { task: Task; autoFocus: boolean }) {
     const [title, setTitle] = useState('');
 
     return (
@@ -173,6 +175,7 @@ function AddSubtask({ task }: { task: Task }) {
         >
             <Plus className="size-4 shrink-0 text-muted-foreground" />
             <input
+                autoFocus={autoFocus}
                 value={title}
                 aria-label="New subtask"
                 placeholder="Add a subtask"

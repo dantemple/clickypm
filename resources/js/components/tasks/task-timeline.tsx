@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { Lock, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
@@ -19,9 +19,15 @@ type Entry =
     | { kind: 'comment'; at: string; comment: Comment }
     | { kind: 'activity'; at: string; activity: Activity };
 
+/** The timeline as it's shown: comments, with the changes between them folded. */
+type Item =
+    | { kind: 'comment'; comment: Comment }
+    | { kind: 'changes'; key: string; changes: Activity[] };
+
 /**
- * The task's history: comments and changes in the order they happened,
- * with the comment box at the bottom.
+ * The task's history: comments in the order they were posted, with the
+ * changes made between them folded into one line each. The comment box
+ * lives outside this, pinned to the bottom of the panel.
  */
 export function TaskTimeline({
     task,
@@ -32,7 +38,7 @@ export function TaskTimeline({
     comments: Comment[];
     activity: Activity[];
 }) {
-    const [commentsOnly, setCommentsOnly] = useState(false);
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
     const entries: Entry[] = [
         ...comments.map((comment) => ({
@@ -40,59 +46,117 @@ export function TaskTimeline({
             at: comment.created_at,
             comment,
         })),
-        ...(commentsOnly ? [] : activity).map((item) => ({
+        ...activity.map((item) => ({
             kind: 'activity' as const,
             at: item.created_at,
             activity: item,
         })),
     ].sort((a, b) => a.at.localeCompare(b.at));
 
-    return (
-        <div className="flex flex-col gap-3 border-t p-4">
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">
-                    Activity{' '}
-                    <span className="font-normal text-muted-foreground">
-                        · {comments.length}{' '}
-                        {comments.length === 1 ? 'comment' : 'comments'}
-                    </span>
-                </h3>
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Checkbox
-                        checked={commentsOnly}
-                        onCheckedChange={(checked) =>
-                            setCommentsOnly(checked === true)
-                        }
-                    />
-                    Comments only
-                </label>
-            </div>
+    const items = entries.reduce<Item[]>((items, entry) => {
+        const last = items.at(-1);
 
-            {entries.length === 0 && (
+        if (entry.kind === 'comment') {
+            items.push({ kind: 'comment', comment: entry.comment });
+        } else if (last?.kind === 'changes') {
+            last.changes.push(entry.activity);
+        } else {
+            items.push({
+                kind: 'changes',
+                key: `a${entry.activity.id}`,
+                changes: [entry.activity],
+            });
+        }
+
+        return items;
+    }, []);
+
+    const toggle = (key: string) =>
+        setExpanded((current) => {
+            const next = new Set(current);
+
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+
+            return next;
+        });
+
+    return (
+        <section className="flex flex-col gap-3 border-t px-4 py-3">
+            <h3 className="text-sm font-medium">
+                Activity{' '}
+                <span className="font-normal text-muted-foreground">
+                    · {comments.length}{' '}
+                    {comments.length === 1 ? 'comment' : 'comments'}
+                </span>
+            </h3>
+
+            {comments.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                     No comments yet.
                 </p>
             )}
 
             <ul className="flex flex-col gap-2">
-                {entries.map((entry) =>
-                    entry.kind === 'comment' ? (
+                {items.map((item) =>
+                    item.kind === 'comment' ? (
                         <CommentItem
-                            key={`c${entry.comment.id}`}
+                            key={`c${item.comment.id}`}
                             task={task}
-                            comment={entry.comment}
+                            comment={item.comment}
                         />
                     ) : (
-                        <ActivityItem
-                            key={`a${entry.activity.id}`}
-                            activity={entry.activity}
+                        <ChangesItem
+                            key={item.key}
+                            changes={item.changes}
+                            expanded={expanded.has(item.key)}
+                            onToggle={() => toggle(item.key)}
                         />
                     ),
                 )}
             </ul>
+        </section>
+    );
+}
 
-            <CommentForm task={task} />
-        </div>
+/** A run of changes between two comments, folded to one line until opened. */
+function ChangesItem({
+    changes,
+    expanded,
+    onToggle,
+}: {
+    changes: Activity[];
+    expanded: boolean;
+    onToggle: () => void;
+}) {
+    const Chevron = expanded ? ChevronUp : ChevronDown;
+    const last = changes[changes.length - 1];
+
+    return (
+        <li className="flex flex-col gap-1">
+            <button
+                type="button"
+                className="flex items-center gap-2 rounded px-2 py-0.5 text-left text-xs text-muted-foreground hover:text-foreground"
+                onClick={onToggle}
+            >
+                <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                {changes.length} {changes.length === 1 ? 'change' : 'changes'}
+                <span className="whitespace-nowrap">
+                    · {formatDateTime(last.created_at)}
+                </span>
+                <Chevron className="size-3.5" />
+            </button>
+            {expanded && (
+                <ul className="flex flex-col gap-1">
+                    {changes.map((activity) => (
+                        <ActivityItem key={activity.id} activity={activity} />
+                    ))}
+                </ul>
+            )}
+        </li>
     );
 }
 
@@ -284,7 +348,8 @@ function CommentItem({ task, comment }: { task: Task; comment: Comment }) {
     );
 }
 
-function CommentForm({ task }: { task: Task }) {
+/** The comment box. Pinned to the bottom of the task panel. */
+export function CommentForm({ task }: { task: Task }) {
     const { canEdit } = useProject();
     const [body, setBody] = useState('');
     const [internal, setInternal] = useState(false);
@@ -323,7 +388,7 @@ function CommentForm({ task }: { task: Task }) {
         >
             <textarea
                 value={body}
-                rows={3}
+                rows={2}
                 aria-label="Comment"
                 placeholder={
                     internal
