@@ -1,4 +1,6 @@
-export type ViewType = 'list' | 'board' | 'table';
+export type ViewType = 'list' | 'board' | 'table' | 'gantt';
+
+export type GanttZoom = 'day' | 'week' | 'month';
 
 export type GroupBy = 'status' | 'priority' | 'assignee';
 
@@ -21,6 +23,7 @@ export type ViewSettings = {
     group_by?: GroupBy;
     sort?: { column: SortColumn; direction: SortDirection };
     columns?: (TaskColumn | FieldColumn)[];
+    zoom?: GanttZoom;
 };
 
 export type ProjectView = {
@@ -114,6 +117,8 @@ export type Task = {
     priority: Priority | null;
     assignee_id: number | null;
     due_date: string | null;
+    start_date: string | null;
+    is_milestone: boolean;
     position: number;
     created_by: { id: number; name: string } | null;
     completed_at: string | null;
@@ -175,6 +180,8 @@ export type TaskInput = Partial<
         | 'priority'
         | 'assignee_id'
         | 'due_date'
+        | 'start_date'
+        | 'is_milestone'
     >
 > & { custom_fields?: Record<number, CustomFieldValue | null> };
 

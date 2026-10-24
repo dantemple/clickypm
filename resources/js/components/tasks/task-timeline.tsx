@@ -167,6 +167,16 @@ function describeActivity({ type, data }: Activity): ReactNode {
             ) : (
                 'removed the due date'
             );
+        case 'start_date':
+            return data.to ? (
+                <>set the start date to {formatDue(text(data.to))}</>
+            ) : (
+                'removed the start date'
+            );
+        case 'milestone':
+            return 'made this a milestone';
+        case 'not_milestone':
+            return 'made this a normal task again';
         case 'renamed':
             return <>renamed this from {quote(data.from)}</>;
         case 'description':

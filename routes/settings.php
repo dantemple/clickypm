@@ -5,6 +5,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Teams\CustomFieldController;
 use App\Http\Controllers\Teams\TeamController;
+use App\Http\Controllers\Teams\TeamFeatureController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -49,6 +50,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('settings/teams/{team}/invitations', [TeamInvitationController::class, 'store'])->name('teams.invitations.store');
         Route::delete('settings/teams/{team}/invitations/{invitation}', [TeamInvitationController::class, 'destroy'])->name('teams.invitations.destroy');
+
+        Route::patch('settings/teams/{team}/features', [TeamFeatureController::class, 'update'])->name('teams.features.update');
 
         Route::post('settings/teams/{team}/custom-fields', [CustomFieldController::class, 'store'])->name('teams.fields.store');
         Route::scopeBindings()->group(function () {

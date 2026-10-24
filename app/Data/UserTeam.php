@@ -12,6 +12,8 @@ readonly class UserTeam
         public ?string $role,
         public ?string $roleLabel,
         public ?bool $isCurrent = null,
+        /** @var array<string, bool> */
+        public array $features = [],
     ) {
         //
     }

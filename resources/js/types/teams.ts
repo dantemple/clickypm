@@ -8,6 +8,14 @@ export type Team = {
     role?: TeamRole;
     roleLabel?: string;
     isCurrent?: boolean;
+    /** Optional modules switched on, keyed by feature, e.g. { gantt: true }. */
+    features?: Record<string, boolean>;
+};
+
+export type FeatureOption = {
+    value: string;
+    label: string;
+    description: string;
 };
 
 export type TeamMember = {

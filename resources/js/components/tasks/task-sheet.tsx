@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { Check, Inbox, Trash2, X } from 'lucide-react';
 import { Fragment } from 'react';
 import { CustomFieldInput } from '@/components/custom-fields/custom-field-input';
@@ -12,6 +13,7 @@ import { TaskAttachments } from '@/components/tasks/task-attachments';
 import { TaskSubtasks } from '@/components/tasks/task-subtasks';
 import { TaskTimeline } from '@/components/tasks/task-timeline';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
     Sheet,
@@ -25,6 +27,7 @@ import {
     acceptTask,
     deleteTask,
     formatDateTime,
+    formatDue,
     updateTask,
 } from '@/lib/tasks';
 import type { Activity, Attachment, Comment, Subtask, Task } from '@/types';
@@ -72,6 +75,7 @@ function TaskDetails({
     onClose: () => void;
 }) {
     const { project, canEdit, customFields } = useProject();
+    const ganttEnabled = !!usePage().props.currentTeam?.features?.gantt;
     // Both follow other people's edits, except while you're typing in them.
     const {
         draft: title,
@@ -211,6 +215,64 @@ function TaskDetails({
                         <span className="text-muted-foreground">None</span>
                     )}
                 </dd>
+
+                {ganttEnabled && (
+                    <>
+                        <dt className="text-muted-foreground">Start date</dt>
+                        <dd className="flex items-center gap-2">
+                            {canEdit ? (
+                                <>
+                                    <Input
+                                        type="date"
+                                        aria-label="Start date"
+                                        className="h-8 w-44"
+                                        max={task.due_date ?? undefined}
+                                        value={task.start_date ?? ''}
+                                        onChange={(event) =>
+                                            updateTask(task, {
+                                                start_date:
+                                                    event.target.value || null,
+                                            })
+                                        }
+                                    />
+                                    {task.start_date && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                                updateTask(task, {
+                                                    start_date: null,
+                                                })
+                                            }
+                                        >
+                                            Clear
+                                        </Button>
+                                    )}
+                                </>
+                            ) : task.start_date ? (
+                                formatDue(task.start_date)
+                            ) : (
+                                <span className="text-muted-foreground">
+                                    None
+                                </span>
+                            )}
+                        </dd>
+
+                        <dt className="text-muted-foreground">Milestone</dt>
+                        <dd>
+                            <Checkbox
+                                aria-label="Milestone"
+                                checked={task.is_milestone}
+                                disabled={!canEdit}
+                                onCheckedChange={(checked) =>
+                                    updateTask(task, {
+                                        is_milestone: checked === true,
+                                    })
+                                }
+                            />
+                        </dd>
+                    </>
+                )}
 
                 {customFields.map((field) => (
                     <Fragment key={field.id}>

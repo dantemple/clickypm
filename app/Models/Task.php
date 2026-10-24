@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Storage;
  * @property TaskPriority|null $priority
  * @property int|null $assignee_id
  * @property CarbonImmutable|null $due_date
+ * @property CarbonImmutable|null $start_date
+ * @property bool $is_milestone
  * @property int $position
  * @property int|null $created_by
  * @property CarbonImmutable|null $completed_at
@@ -45,7 +47,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read int|null $attachments_count
  * @property-read Collection<int, CustomFieldValue> $customFieldValues
  */
-#[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'position', 'created_by'])]
+#[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'start_date', 'is_milestone', 'position', 'created_by'])]
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
@@ -139,6 +141,17 @@ class Task extends Model
                 'from' => $original('due_date') ? CarbonImmutable::parse($original('due_date'))->toDateString() : null,
                 'to' => $this->due_date?->toDateString(),
             ]];
+        }
+
+        if ($this->wasChanged('start_date')) {
+            $entries[] = ['start_date', [
+                'from' => $original('start_date') ? CarbonImmutable::parse($original('start_date'))->toDateString() : null,
+                'to' => $this->start_date?->toDateString(),
+            ]];
+        }
+
+        if ($this->wasChanged('is_milestone')) {
+            $entries[] = [$this->is_milestone ? 'milestone' : 'not_milestone', []];
         }
 
         if ($this->wasChanged('title')) {
@@ -267,6 +280,8 @@ class Task extends Model
             'priority' => $this->priority?->value,
             'assignee_id' => $this->assignee_id,
             'due_date' => $this->due_date?->toDateString(),
+            'start_date' => $this->start_date?->toDateString(),
+            'is_milestone' => $this->is_milestone,
             'position' => $this->position,
             'created_by' => $this->creator?->only(['id', 'name']),
             'completed_at' => $this->completed_at?->toIso8601String(),
@@ -295,6 +310,8 @@ class Task extends Model
             'needs_triage' => 'boolean',
             'priority' => TaskPriority::class,
             'due_date' => 'date',
+            'start_date' => 'date',
+            'is_milestone' => 'boolean',
             'completed_at' => 'datetime',
         ];
     }
