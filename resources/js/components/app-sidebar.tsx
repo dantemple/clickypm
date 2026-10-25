@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { LayoutGrid, Trash2 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { SearchButton } from '@/components/command-palette';
 import { NavMain } from '@/components/nav-main';
 import { NavProjects } from '@/components/nav-projects';
 import { NavUser } from '@/components/nav-user';
@@ -60,6 +61,13 @@ export function AppSidebar() {
                         <TeamSwitcher />
                     </SidebarMenuItem>
                 </SidebarMenu>
+                {currentTeam && (
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SearchButton />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                )}
             </SidebarHeader>
 
             <SidebarContent>
