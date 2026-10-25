@@ -11,7 +11,7 @@ import {
     Settings,
     SlidersHorizontal,
 } from 'lucide-react';
-import { useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { ProjectContext } from '@/components/projects/project-context';
 import { ProjectFieldsDialog } from '@/components/projects/project-fields-dialog';
 import { ProjectSettingsDialog } from '@/components/projects/project-settings-dialog';
@@ -39,9 +39,11 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Label } from '@/components/ui/label';
 import { BoardView } from '@/components/views/board-view';
 import { ListView } from '@/components/views/list-view';
+import { Spinner } from '@/components/ui/spinner';
 import {
     TableView,
     columnLabel,
@@ -58,6 +60,7 @@ import type {
     Attachment,
     Comment,
     CustomField,
+    GanttZoom,
     GroupBy,
     Member,
     PriorityOption,
@@ -89,6 +92,21 @@ type Props = {
     priorities: PriorityOption[];
     maxUploadMegabytes: number;
 };
+
+function LoadingView() {
+    return (
+        <div className="flex justify-center p-8">
+            <Spinner />
+        </div>
+    );
+}
+
+// The chart library is only loaded once someone opens a Gantt view.
+const GanttView = lazy(() =>
+    import('@/components/views/gantt-view').then((module) => ({
+        default: module.GanttView,
+    })),
+);
 
 const GROUP_LABELS: Record<GroupBy, string> = {
     status: 'Status',
@@ -124,6 +142,10 @@ export default function ProjectShow({
     const [statusesOpen, setStatusesOpen] = useState(false);
     const [fieldsOpen, setFieldsOpen] = useState(false);
     const [newTaskOpen, setNewTaskOpen] = useState(false);
+    // The Gantt chart is client-only: server rendering can't wait for a
+    // lazy chunk, so it gets the spinner until the page has mounted.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
 
     // Clients can't change the team's saved views, so their tweaks stay local.
     const [localSettings, setLocalSettings] = useState<{
@@ -364,6 +386,26 @@ export default function ProjectShow({
                         </DropdownMenu>
                     )}
 
+                    {view.type === 'gantt' && (
+                        <ToggleGroup
+                            type="single"
+                            size="sm"
+                            variant="outline"
+                            value={settings.zoom ?? 'week'}
+                            onValueChange={(value) =>
+                                value &&
+                                changeSettings({ zoom: value as GanttZoom })
+                            }
+                            aria-label="Zoom"
+                        >
+                            <ToggleGroupItem value="day">Day</ToggleGroupItem>
+                            <ToggleGroupItem value="week">Week</ToggleGroupItem>
+                            <ToggleGroupItem value="month">
+                                Month
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                    )}
+
                     <Button
                         variant={settings.show_closed ? 'secondary' : 'outline'}
                         size="sm"
@@ -403,6 +445,17 @@ export default function ProjectShow({
                             onSettingsChange={changeSettings}
                         />
                     )}
+                    {view.type === 'gantt' &&
+                        (mounted ? (
+                            <Suspense fallback={<LoadingView />}>
+                                <GanttView
+                                    tasks={visibleTasks}
+                                    settings={settings}
+                                />
+                            </Suspense>
+                        ) : (
+                            <LoadingView />
+                        ))}
                 </div>
             </div>
 

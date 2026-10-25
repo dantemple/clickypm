@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\GeneratesUniqueTeamSlugs;
+use App\Enums\TeamFeature;
 use App\Enums\TeamRole;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -19,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $slug
  * @property bool $is_personal
+ * @property array<string, bool>|null $features
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -28,7 +30,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Project> $projects
  * @property-read Collection<int, CustomField> $customFields
  */
-#[Fillable(['name', 'slug', 'is_personal'])]
+#[Fillable(['name', 'slug', 'is_personal', 'features'])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
@@ -126,7 +128,16 @@ class Team extends Model
     {
         return [
             'is_personal' => 'boolean',
+            'features' => 'array',
         ];
+    }
+
+    /**
+     * Whether an optional module is switched on for this workspace.
+     */
+    public function hasFeature(TeamFeature $feature): bool
+    {
+        return (bool) ($this->features[$feature->value] ?? false);
     }
 
     /**

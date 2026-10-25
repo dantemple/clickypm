@@ -8,12 +8,14 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import { Fragment, useState } from 'react';
 import { toast } from 'sonner';
 import { CustomFieldInput } from '@/components/custom-fields/custom-field-input';
 import { useProject } from '@/components/projects/project-context';
 import {
     AssigneePicker,
+    DueDateButton,
     DueDatePicker,
     PriorityPicker,
     StatusPicker,
@@ -25,6 +27,7 @@ import {
 import { TaskSubtasks } from '@/components/tasks/task-subtasks';
 import { CommentForm, TaskTimeline } from '@/components/tasks/task-timeline';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -99,6 +102,7 @@ function TaskDetails({
     onClose: () => void;
 }) {
     const { project, canEdit, customFields } = useProject();
+    const ganttEnabled = !!usePage().props.currentTeam?.features?.gantt;
     const [, copy] = useClipboard();
     const upload = useAttachmentUpload(task);
     const [addingSubtask, setAddingSubtask] = useState(false);
@@ -267,6 +271,39 @@ function TaskDetails({
                     <dd>
                         <DueDatePicker task={task} placeholder="Empty" />
                     </dd>
+
+                    {ganttEnabled && (
+                        <>
+                            <dt className="text-muted-foreground">
+                                Start date
+                            </dt>
+                            <dd>
+                                <DueDateButton
+                                    date={task.start_date}
+                                    overdue={false}
+                                    label="Start date"
+                                    placeholder="Empty"
+                                    onChange={(date) =>
+                                        updateTask(task, { start_date: date })
+                                    }
+                                />
+                            </dd>
+
+                            <dt className="text-muted-foreground">Milestone</dt>
+                            <dd>
+                                <Checkbox
+                                    aria-label="Milestone"
+                                    checked={task.is_milestone}
+                                    disabled={!canEdit}
+                                    onCheckedChange={(checked) =>
+                                        updateTask(task, {
+                                            is_milestone: checked === true,
+                                        })
+                                    }
+                                />
+                            </dd>
+                        </>
+                    )}
 
                     {customFields.map((field) => (
                         <Fragment key={field.id}>

@@ -14,6 +14,7 @@ import RemoveMemberModal from '@/components/remove-member-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -30,9 +31,11 @@ import {
 } from '@/components/ui/tooltip';
 import { useInitials } from '@/hooks/use-initials';
 import { edit, index, update } from '@/routes/teams';
+import { update as updateFeature } from '@/routes/teams/features';
 import { update as updateMember } from '@/routes/teams/members';
 import type {
     CustomFieldTypeOption,
+    FeatureOption,
     RoleOption,
     Team,
     TeamInvitation,
@@ -48,6 +51,7 @@ type Props = {
     fieldTypes: CustomFieldTypeOption[];
     permissions: TeamPermissions;
     availableRoles: RoleOption[];
+    availableFeatures: FeatureOption[];
 };
 
 export default function TeamEdit({
@@ -58,6 +62,7 @@ export default function TeamEdit({
     fieldTypes,
     permissions,
     availableRoles,
+    availableFeatures,
 }: Props) {
     const getInitials = useInitials();
 
@@ -328,6 +333,48 @@ export default function TeamEdit({
                         </div>
                     </div>
                 ) : null}
+
+                <div className="space-y-6">
+                    <Heading
+                        variant="small"
+                        title="Modules"
+                        description="Optional features for this workspace. Switching one off hides it but keeps its data."
+                    />
+                    <ul className="space-y-3">
+                        {availableFeatures.map((feature) => (
+                            <li
+                                key={feature.value}
+                                data-test="feature-row"
+                                className="flex items-start gap-3 rounded-lg border p-4"
+                            >
+                                <Checkbox
+                                    id={`feature-${feature.value}`}
+                                    className="mt-0.5"
+                                    checked={!!team.features?.[feature.value]}
+                                    disabled={!permissions.canUpdateTeam}
+                                    onCheckedChange={(checked) =>
+                                        router.patch(
+                                            updateFeature.url(team.slug),
+                                            {
+                                                feature: feature.value,
+                                                enabled: checked === true,
+                                            },
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                />
+                                <div className="grid gap-1">
+                                    <Label htmlFor={`feature-${feature.value}`}>
+                                        {feature.label}
+                                    </Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        {feature.description}
+                                    </p>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
 
                 <CustomFieldsSection
                     team={team}

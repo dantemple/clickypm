@@ -7,6 +7,7 @@ enum ViewType: string
     case List = 'list';
     case Board = 'board';
     case Table = 'table';
+    case Gantt = 'gantt';
 
     /**
      * Get the display label for the view type.
@@ -34,6 +35,10 @@ enum ViewType: string
             self::Table => [
                 'sort' => ['column' => 'position', 'direction' => 'asc'],
                 'columns' => ['status', 'assignee', 'priority', 'due_date'],
+                'show_closed' => true,
+            ],
+            self::Gantt => [
+                'zoom' => 'week',
                 'show_closed' => true,
             ],
         };

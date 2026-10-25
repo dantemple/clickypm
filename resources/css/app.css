@@ -141,3 +141,16 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* The Gantt view's "today" line, drawn inside the chart's scrolling area. */
+.gantt-today {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 3;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--primary);
+    opacity: 0.6;
+    pointer-events: none;
+}

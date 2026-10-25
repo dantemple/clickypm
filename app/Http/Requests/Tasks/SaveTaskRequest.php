@@ -6,9 +6,11 @@ use App\Enums\TaskPriority;
 use App\Models\Attachment;
 use App\Models\CustomField;
 use App\Models\Project;
+use App\Models\Task;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class SaveTaskRequest extends FormRequest
 {
@@ -34,6 +36,8 @@ class SaveTaskRequest extends FormRequest
             'priority' => ['sometimes', 'nullable', Rule::enum(TaskPriority::class)],
             'assignee_id' => ['sometimes', 'nullable', 'integer', Rule::exists('team_members', 'user_id')->where('team_id', $project->team_id)],
             'due_date' => ['sometimes', 'nullable', 'date'],
+            'start_date' => ['sometimes', 'nullable', 'date'],
+            'is_milestone' => ['sometimes', 'boolean'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES],
             // Values keyed by field id, for fields the project uses.
@@ -41,6 +45,34 @@ class SaveTaskRequest extends FormRequest
                 ? ['prohibited']
                 : ['sometimes', 'array:'.$fields->implode('id', ',')],
             ...$fields->mapWithKeys(fn (CustomField $field) => ["custom_fields.{$field->id}" => $field->valueRules()]),
+        ];
+    }
+
+    /**
+     * A task can't start after it's due, counting whichever date isn't in
+     * this request from the task as it stands.
+     *
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                /** @var Task|null $task */
+                $task = $this->route('task');
+                $validated = $validator->validated();
+
+                $start = array_key_exists('start_date', $validated) ? $validated['start_date'] : $task?->start_date?->toDateString();
+                $due = array_key_exists('due_date', $validated) ? $validated['due_date'] : $task?->due_date?->toDateString();
+
+                if ($start && $due && $start > $due) {
+                    $validator->errors()->add('start_date', __('The start date must be on or before the due date.'));
+                }
+            },
         ];
     }
 }

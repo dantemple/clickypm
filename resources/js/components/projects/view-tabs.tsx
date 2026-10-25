@@ -1,5 +1,6 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
+    ChartGantt,
     ChevronDown,
     Kanban,
     List,
@@ -29,6 +30,7 @@ export const VIEW_ICONS: Record<ViewType, typeof List> = {
     list: List,
     board: Kanban,
     table: Sheet,
+    gantt: ChartGantt,
 };
 
 export function ViewTabs({
@@ -43,6 +45,10 @@ export function ViewTabs({
     canEdit: boolean;
 }) {
     const [renaming, setRenaming] = useState<number | null>(null);
+    const ganttEnabled = !!usePage().props.currentTeam?.features?.gantt;
+    const availableTypes = (Object.keys(VIEW_ICONS) as ViewType[]).filter(
+        (type) => type !== 'gantt' || ganttEnabled,
+    );
 
     const addView = (type: ViewType) =>
         router.post(storeViewRoute.url({ project: project.id }), { type });
@@ -138,7 +144,7 @@ export function ViewTabs({
                         <DropdownMenuLabel className="text-xs text-muted-foreground">
                             Add a view
                         </DropdownMenuLabel>
-                        {(Object.keys(VIEW_ICONS) as ViewType[]).map((type) => {
+                        {availableTypes.map((type) => {
                             const Icon = VIEW_ICONS[type];
 
                             return (

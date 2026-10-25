@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Enums\TaskPriority;
+use App\Enums\TeamFeature;
 use App\Enums\TeamRole;
 use App\Enums\ViewType;
 use App\Http\Controllers\Controller;
@@ -37,9 +38,14 @@ class ProjectViewController extends Controller
     /**
      * Show a project through one of its saved views.
      */
-    public function show(Request $request, Team $current_team, Project $project, ProjectView $view): Response
+    public function show(Request $request, Team $current_team, Project $project, ProjectView $view): Response|RedirectResponse
     {
         Gate::authorize('view', $project);
+
+        // Views of a module that's switched off stay stored but aren't shown.
+        if (! $this->available($view, $current_team)) {
+            return to_route('projects.show', [$current_team, $project]);
+        }
 
         $user = $request->user();
         $isClient = $user->isClientOf($current_team);
@@ -73,7 +79,7 @@ class ProjectViewController extends Controller
                 'canDelete' => $user->can('delete', $project),
             ],
             'canEdit' => $user->can('update', $project),
-            'views' => $project->views->map->toViewData(),
+            'views' => $project->views->filter(fn (ProjectView $view) => $this->available($view, $current_team))->values()->map->toViewData(),
             'view' => $view->toViewData(),
             'statuses' => $project->statuses->map(fn (Status $status) => $status->only(['id', 'name', 'color', 'is_done'])),
             'customFields' => $customFields->map->toFieldData(),
@@ -118,6 +124,14 @@ class ProjectViewController extends Controller
     }
 
     /**
+     * Whether the view belongs to a module the workspace has switched on.
+     */
+    private function available(ProjectView $view, Team $team): bool
+    {
+        return $view->type !== ViewType::Gantt || $team->hasFeature(TeamFeature::Gantt);
+    }
+
+    /**
      * Whether a history entry is about a custom field clients can't see,
      * including fields that have since been deleted.
      */
@@ -139,8 +153,15 @@ class ProjectViewController extends Controller
     {
         Gate::authorize('update', $project);
 
+        // The Gantt type is only on offer once the module is switched on.
+        $type = Rule::enum(ViewType::class);
+
+        if (! $current_team->hasFeature(TeamFeature::Gantt)) {
+            $type->except(ViewType::Gantt);
+        }
+
         $validated = $request->validate([
-            'type' => ['required', Rule::enum(ViewType::class)],
+            'type' => ['required', $type],
             'name' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -169,6 +190,7 @@ class ProjectViewController extends Controller
             'name' => ['sometimes', 'string', 'max:100'],
             'settings' => ['sometimes', 'array'],
             'settings.show_closed' => ['sometimes', 'boolean'],
+            'settings.zoom' => ['sometimes', Rule::in(['day', 'week', 'month'])],
             'settings.group_by' => ['sometimes', Rule::in(['status', 'priority', 'assignee'])],
             'settings.sort' => ['sometimes', 'array'],
             'settings.sort.column' => ['required_with:settings.sort', Rule::in(['position', 'title', ...$columns])],
