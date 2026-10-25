@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\HasAvatar;
 use App\Concerns\HasTeams;
+use App\Enums\ThemeColor;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Appends;
@@ -33,6 +34,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int|null $current_team_id
  * @property bool $task_emails
  * @property bool $reminder_emails
+ * @property ThemeColor|null $theme_color
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read string|null $avatar
@@ -41,7 +43,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property-read Collection<int, Membership> $teamMemberships
  * @property-read Collection<int, Team> $teams
  */
-#[Fillable(['name', 'email', 'password', 'current_team_id', 'task_emails', 'reminder_emails'])]
+#[Fillable(['name', 'email', 'password', 'current_team_id', 'task_emails', 'reminder_emails', 'theme_color'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'avatar_path'])]
 #[Appends(['avatar'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
@@ -83,6 +85,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'two_factor_confirmed_at' => 'datetime',
             'task_emails' => 'boolean',
             'reminder_emails' => 'boolean',
+            'theme_color' => ThemeColor::class,
         ];
     }
 }
