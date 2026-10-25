@@ -91,7 +91,7 @@
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent: oklch(0.3 0.02 275 / 7%);
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.87 0 0);
@@ -128,7 +128,7 @@
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.985 0 0);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent: oklch(0.95 0.01 275 / 10%);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
@@ -195,94 +195,132 @@
 
 /* Sidebar gradient colours, chosen under Settings > Appearance. The html
    element carries data-theme-color so the right one applies before React
-   mounts. Slate is the default defined on :root and .dark above. */
+   mounts. Slate is the default defined on :root and .dark above. Hover,
+   active and border colours are translucent tints of the same hue so they
+   sit on the gradient rather than fighting it. */
 
 :root[data-theme-color='violet'] {
     --sidebar-gradient-from: oklch(0.98 0.016 290);
     --sidebar-gradient-to: oklch(0.905 0.06 290);
+    --sidebar-accent: oklch(0.45 0.14 290 / 12%);
+    --sidebar-border: oklch(0.55 0.08 290 / 25%);
 }
 
 :root.dark[data-theme-color='violet'] {
     --sidebar-gradient-from: oklch(0.27 0.045 290);
-    --sidebar-gradient-to: oklch(0.17 0.03 290);
+    --sidebar-gradient-to: oklch(0.17 0.029 290);
+    --sidebar-accent: oklch(0.8 0.098 290 / 16%);
+    --sidebar-border: oklch(0.8 0.08 290 / 20%);
 }
 
 :root[data-theme-color='blue'] {
     --sidebar-gradient-from: oklch(0.98 0.016 250);
     --sidebar-gradient-to: oklch(0.905 0.06 250);
+    --sidebar-accent: oklch(0.45 0.14 250 / 12%);
+    --sidebar-border: oklch(0.55 0.08 250 / 25%);
 }
 
 :root.dark[data-theme-color='blue'] {
     --sidebar-gradient-from: oklch(0.27 0.045 250);
-    --sidebar-gradient-to: oklch(0.17 0.03 250);
+    --sidebar-gradient-to: oklch(0.17 0.029 250);
+    --sidebar-accent: oklch(0.8 0.098 250 / 16%);
+    --sidebar-border: oklch(0.8 0.08 250 / 20%);
 }
 
 :root[data-theme-color='pink'] {
     --sidebar-gradient-from: oklch(0.98 0.016 350);
     --sidebar-gradient-to: oklch(0.905 0.06 350);
+    --sidebar-accent: oklch(0.45 0.14 350 / 12%);
+    --sidebar-border: oklch(0.55 0.08 350 / 25%);
 }
 
 :root.dark[data-theme-color='pink'] {
     --sidebar-gradient-from: oklch(0.27 0.045 350);
-    --sidebar-gradient-to: oklch(0.17 0.03 350);
+    --sidebar-gradient-to: oklch(0.17 0.029 350);
+    --sidebar-accent: oklch(0.8 0.098 350 / 16%);
+    --sidebar-border: oklch(0.8 0.08 350 / 20%);
 }
 
 :root[data-theme-color='purple'] {
     --sidebar-gradient-from: oklch(0.98 0.016 310);
     --sidebar-gradient-to: oklch(0.905 0.06 310);
+    --sidebar-accent: oklch(0.45 0.14 310 / 12%);
+    --sidebar-border: oklch(0.55 0.08 310 / 25%);
 }
 
 :root.dark[data-theme-color='purple'] {
     --sidebar-gradient-from: oklch(0.27 0.045 310);
-    --sidebar-gradient-to: oklch(0.17 0.03 310);
+    --sidebar-gradient-to: oklch(0.17 0.029 310);
+    --sidebar-accent: oklch(0.8 0.098 310 / 16%);
+    --sidebar-border: oklch(0.8 0.08 310 / 20%);
 }
 
 :root[data-theme-color='indigo'] {
     --sidebar-gradient-from: oklch(0.98 0.016 272);
     --sidebar-gradient-to: oklch(0.905 0.06 272);
+    --sidebar-accent: oklch(0.45 0.14 272 / 12%);
+    --sidebar-border: oklch(0.55 0.08 272 / 25%);
 }
 
 :root.dark[data-theme-color='indigo'] {
     --sidebar-gradient-from: oklch(0.27 0.045 272);
-    --sidebar-gradient-to: oklch(0.17 0.03 272);
+    --sidebar-gradient-to: oklch(0.17 0.029 272);
+    --sidebar-accent: oklch(0.8 0.098 272 / 16%);
+    --sidebar-border: oklch(0.8 0.08 272 / 20%);
 }
 
 :root[data-theme-color='orange'] {
     --sidebar-gradient-from: oklch(0.98 0.016 55);
     --sidebar-gradient-to: oklch(0.905 0.06 55);
+    --sidebar-accent: oklch(0.45 0.14 55 / 12%);
+    --sidebar-border: oklch(0.55 0.08 55 / 25%);
 }
 
 :root.dark[data-theme-color='orange'] {
     --sidebar-gradient-from: oklch(0.27 0.045 55);
-    --sidebar-gradient-to: oklch(0.17 0.03 55);
+    --sidebar-gradient-to: oklch(0.17 0.029 55);
+    --sidebar-accent: oklch(0.8 0.098 55 / 16%);
+    --sidebar-border: oklch(0.8 0.08 55 / 20%);
 }
 
 :root[data-theme-color='teal'] {
     --sidebar-gradient-from: oklch(0.98 0.016 190);
     --sidebar-gradient-to: oklch(0.905 0.06 190);
+    --sidebar-accent: oklch(0.45 0.14 190 / 12%);
+    --sidebar-border: oklch(0.55 0.08 190 / 25%);
 }
 
 :root.dark[data-theme-color='teal'] {
     --sidebar-gradient-from: oklch(0.27 0.045 190);
-    --sidebar-gradient-to: oklch(0.17 0.03 190);
-}
-
-:root[data-theme-color='green'] {
-    --sidebar-gradient-from: oklch(0.98 0.016 150);
-    --sidebar-gradient-to: oklch(0.905 0.06 150);
-}
-
-:root.dark[data-theme-color='green'] {
-    --sidebar-gradient-from: oklch(0.27 0.045 150);
-    --sidebar-gradient-to: oklch(0.17 0.03 150);
+    --sidebar-gradient-to: oklch(0.17 0.029 190);
+    --sidebar-accent: oklch(0.8 0.098 190 / 16%);
+    --sidebar-border: oklch(0.8 0.08 190 / 20%);
 }
 
 :root[data-theme-color='stone'] {
     --sidebar-gradient-from: oklch(0.98 0.008 60);
     --sidebar-gradient-to: oklch(0.905 0.03 60);
+    --sidebar-accent: oklch(0.45 0.06 60 / 12%);
+    --sidebar-border: oklch(0.55 0.04 60 / 25%);
 }
 
 :root.dark[data-theme-color='stone'] {
-    --sidebar-gradient-from: oklch(0.27 0.022 60);
-    --sidebar-gradient-to: oklch(0.17 0.015 60);
+    --sidebar-gradient-from: oklch(0.27 0.019 60);
+    --sidebar-gradient-to: oklch(0.17 0.013 60);
+    --sidebar-accent: oklch(0.8 0.042 60 / 16%);
+    --sidebar-border: oklch(0.8 0.04 60 / 20%);
+}
+
+:root[data-theme-color='green'] {
+    --sidebar-gradient-from: oklch(0.98 0.016 150);
+    --sidebar-gradient-to: oklch(0.905 0.06 150);
+    --sidebar-accent: oklch(0.45 0.14 150 / 12%);
+    --sidebar-border: oklch(0.55 0.08 150 / 25%);
+}
+
+:root.dark[data-theme-color='green'] {
+    --sidebar-gradient-from: oklch(0.27 0.045 150);
+    --sidebar-gradient-to: oklch(0.17 0.029 150);
+    --sidebar-accent: oklch(0.8 0.098 150 / 16%);
+    --sidebar-border: oklch(0.8 0.08 150 / 20%);
 }
