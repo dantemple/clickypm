@@ -19,4 +19,15 @@ class ProfileUpdateRequest extends FormRequest
     {
         return $this->profileRules($this->user()->id);
     }
+
+    /**
+     * Lowercase the address first, so the unique check can't be sidestepped
+     * with a different spelling of an existing email.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->email)) {
+            $this->merge(['email' => strtolower($this->email)]);
+        }
+    }
 }

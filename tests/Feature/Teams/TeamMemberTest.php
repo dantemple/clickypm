@@ -148,4 +148,20 @@ class TeamMemberTest extends TestCase
 
         $this->assertEquals($personalTeam->id, $member->fresh()->current_team_id);
     }
+
+    public function test_team_owner_cannot_be_given_another_role()
+    {
+        $owner = User::factory()->create();
+        $team = Team::factory()->create();
+
+        $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+        $this->actingAs($owner)
+            ->patch(route('teams.members.update', [$team, $owner]), [
+                'role' => TeamRole::Admin->value,
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(TeamRole::Owner, $owner->fresh()->teamRole($team));
+    }
 }

@@ -57,4 +57,21 @@ class RegistrationTest extends TestCase
         $user = User::where('email', 'test@example.com')->first();
         $response->assertRedirect(route('dashboard'));
     }
+
+    public function test_an_existing_email_cannot_be_registered_again_in_different_case()
+    {
+        User::factory()->create(['email' => 'taken@example.com']);
+
+        $this->from(route('register'))
+            ->post(route('register.store'), [
+                'name' => 'Imposter',
+                'email' => 'Taken@Example.com',
+                'password' => 'password',
+                'password_confirmation' => 'password',
+            ])
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertSame(1, User::count());
+    }
 }

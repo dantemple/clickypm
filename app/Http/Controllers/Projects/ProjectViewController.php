@@ -50,11 +50,12 @@ class ProjectViewController extends Controller
 
         $user = $request->user();
         $isClient = $user->isClientOf($current_team);
-        $openTask = $request->filled('task') ? $project->tasks()->find($request->integer('task')) : null;
+        $openTask = $request->filled('task') ? $project->tasks()->visibleTo($user, $isClient)->find($request->integer('task')) : null;
         $customFields = $project->customFields()->visibleTo($isClient)->get();
 
         $tasks = fn (bool $requests) => $project->tasks()
             ->where('needs_triage', $requests)
+            ->visibleTo($user, $isClient)
             ->with([
                 'creator:id,name',
                 'customFieldValues' => fn ($query) => $query->whereIn('custom_field_id', $customFields->modelKeys()),

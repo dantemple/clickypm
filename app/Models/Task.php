@@ -8,6 +8,7 @@ use App\Enums\TaskPriority;
 use Carbon\CarbonImmutable;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -281,6 +282,19 @@ class Task extends Model
     public function dependents(): HasMany
     {
         return $this->hasMany(TaskDependency::class, 'predecessor_id');
+    }
+
+    /**
+     * Only the tasks the viewer may open. Clients see requests awaiting
+     * triage only when they raised them, so one client never reads another's.
+     *
+     * @param  Builder<Task>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user, bool $isClient): void
+    {
+        $query->when($isClient, fn (Builder $query) => $query->where(fn (Builder $query) => $query
+            ->where('tasks.needs_triage', false)
+            ->orWhere('tasks.created_by', $user->id)));
     }
 
     /**

@@ -21,7 +21,7 @@ class AttachmentController extends Controller
      */
     public function store(Request $request, Team $current_team, Project $project, Task $task): RedirectResponse
     {
-        Gate::authorize('view', $project);
+        Gate::authorize('view', $task);
 
         $request->validate([
             'files' => ['required', 'array', 'max:10'],
@@ -42,7 +42,7 @@ class AttachmentController extends Controller
      */
     public function download(Team $current_team, Project $project, Task $task, Attachment $attachment): StreamedResponse|RedirectResponse
     {
-        Gate::authorize('view', $project);
+        Gate::authorize('view', $task);
 
         if ($attachment->usesSignedUrls()) {
             return redirect()->away($attachment->signedUrl());
@@ -57,7 +57,7 @@ class AttachmentController extends Controller
      */
     public function preview(Team $current_team, Project $project, Task $task, Attachment $attachment): StreamedResponse|RedirectResponse
     {
-        Gate::authorize('view', $project);
+        Gate::authorize('view', $task);
 
         abort_unless($attachment->isPreviewable(), 404);
 
@@ -77,7 +77,7 @@ class AttachmentController extends Controller
      */
     public function destroy(Request $request, Team $current_team, Project $project, Task $task, Attachment $attachment): RedirectResponse
     {
-        Gate::authorize('view', $project);
+        Gate::authorize('view', $task);
 
         abort_unless(
             $attachment->user_id === $request->user()->id || $request->user()->can('update', $project),

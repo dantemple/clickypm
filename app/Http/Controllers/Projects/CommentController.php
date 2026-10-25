@@ -19,7 +19,7 @@ class CommentController extends Controller
      */
     public function store(Request $request, Team $current_team, Project $project, Task $task, SendTaskNotifications $notifications): RedirectResponse
     {
-        Gate::authorize('view', $project);
+        Gate::authorize('view', $task);
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:10000'],
@@ -42,7 +42,7 @@ class CommentController extends Controller
      */
     public function destroy(Request $request, Team $current_team, Project $project, Task $task, Comment $comment): RedirectResponse
     {
-        Gate::authorize('view', $project);
+        Gate::authorize('view', $task);
 
         abort_unless($comment->user_id === $request->user()->id, 403);
 

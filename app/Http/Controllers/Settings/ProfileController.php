@@ -50,6 +50,17 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        // Deleting the owner would leave the workspace with nobody who can
+        // manage members or delete it.
+        if ($user->ownedTeams()->where('teams.is_personal', false)->exists()) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('Delete the workspaces you own before deleting your account.'),
+            ]);
+
+            return back();
+        }
+
         Auth::logout();
 
         $user->delete();

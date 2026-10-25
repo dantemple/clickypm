@@ -82,6 +82,10 @@ Route::prefix('{current_team}/trash')
 
 Route::middleware(['auth'])->group(function () {
     Route::inertia('no-workspace', 'no-workspace')->name('no-workspace');
+});
+
+// Only a verified address can claim the invitations sent to it.
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
