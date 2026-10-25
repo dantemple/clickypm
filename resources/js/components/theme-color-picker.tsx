@@ -1,13 +1,19 @@
 import { Check } from 'lucide-react';
 import type { HTMLAttributes } from 'react';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { themeColors } from '@/lib/theme-colors';
 import { cn } from '@/lib/utils';
 
+export type ThemeColorOption = {
+    value: string;
+    label: string;
+    swatch: string;
+};
+
 export default function ThemeColorPicker({
+    colors,
     className = '',
     ...props
-}: HTMLAttributes<HTMLDivElement>) {
+}: HTMLAttributes<HTMLDivElement> & { colors: ThemeColorOption[] }) {
     const { themeColor, updateThemeColor } = useThemeColor();
 
     return (
@@ -17,7 +23,7 @@ export default function ThemeColorPicker({
             className={cn('flex flex-wrap gap-3', className)}
             {...props}
         >
-            {themeColors.map(({ value, label, swatch }) => {
+            {colors.map(({ value, label, swatch }) => {
                 const selected = themeColor === value;
 
                 return (

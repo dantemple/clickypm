@@ -7,6 +7,7 @@ export type User = {
     two_factor_enabled?: boolean;
     task_emails: boolean;
     reminder_emails: boolean;
+    theme_color: string | null;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

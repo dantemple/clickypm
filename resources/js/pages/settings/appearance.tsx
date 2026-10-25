@@ -1,10 +1,15 @@
 import { Head } from '@inertiajs/react';
 import AppearanceTabs from '@/components/appearance-tabs';
 import Heading from '@/components/heading';
+import type { ThemeColorOption } from '@/components/theme-color-picker';
 import ThemeColorPicker from '@/components/theme-color-picker';
 import { edit as editAppearance } from '@/routes/appearance';
 
-export default function Appearance() {
+export default function Appearance({
+    themeColors,
+}: {
+    themeColors: ThemeColorOption[];
+}) {
     return (
         <>
             <Head title="Appearance settings" />
@@ -25,7 +30,7 @@ export default function Appearance() {
                         title="Theme color"
                         description="Tints the sidebar background."
                     />
-                    <ThemeColorPicker />
+                    <ThemeColorPicker colors={themeColors} />
                 </div>
             </div>
         </>

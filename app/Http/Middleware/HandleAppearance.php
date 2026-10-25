@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\ThemeColor;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
@@ -23,14 +24,11 @@ class HandleAppearance
     }
 
     /**
-     * The sidebar colour the user picked, set on <html> so it applies before
-     * the page scripts run. Unknown names fall back to the default; the
-     * stylesheet only knows the names the picker offers.
+     * The sidebar colour saved on the account, set on <html> so it applies
+     * before the page scripts run. Guests and new accounts get the default.
      */
     protected function themeColor(Request $request): string
     {
-        $color = $request->cookie('theme_color');
-
-        return is_string($color) && preg_match('/^[a-z]{1,20}$/', $color) ? $color : 'slate';
+        return ($request->user()->theme_color ?? ThemeColor::Slate)->value;
     }
 }
