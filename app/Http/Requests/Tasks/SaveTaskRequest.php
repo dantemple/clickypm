@@ -38,6 +38,7 @@ class SaveTaskRequest extends FormRequest
             'due_date' => ['sometimes', 'nullable', 'date'],
             'start_date' => ['sometimes', 'nullable', 'date'],
             'is_milestone' => ['sometimes', 'boolean'],
+            'progress' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES],
             // Values keyed by field id, for fields the project uses.

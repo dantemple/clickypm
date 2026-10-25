@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -33,6 +34,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, ProjectView> $views
  * @property-read Collection<int, Task> $tasks
  * @property-read Collection<int, CustomField> $customFields
+ * @property-read Collection<int, TaskDependency> $dependencies
  * @property-read int|null $tasks_count
  * @property-read int|null $done_tasks_count
  * @property-read int|null $requests_count
@@ -92,6 +94,16 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    /**
+     * Links between the project's tasks, reached through the waiting task.
+     *
+     * @return HasManyThrough<TaskDependency, Task, $this>
+     */
+    public function dependencies(): HasManyThrough
+    {
+        return $this->hasManyThrough(TaskDependency::class, Task::class, 'project_id', 'successor_id');
     }
 
     /**

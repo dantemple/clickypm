@@ -1,6 +1,15 @@
 export type ViewType = 'list' | 'board' | 'table' | 'gantt';
 
-export type GanttZoom = 'day' | 'week' | 'month';
+export type GanttZoom = 'day' | 'week' | 'month' | 'year';
+
+/** A finish-to-start link: the successor waits for the predecessor. */
+export type TaskDependency = {
+    id: number;
+    predecessor_id: number;
+    successor_id: number;
+    type: string;
+    lag_days: number;
+};
 
 export type GroupBy = 'status' | 'priority' | 'assignee';
 
@@ -119,6 +128,8 @@ export type Task = {
     due_date: string | null;
     start_date: string | null;
     is_milestone: boolean;
+    /** 0 to 100, set by hand; done tasks count as 100. */
+    progress: number;
     position: number;
     created_by: { id: number; name: string } | null;
     completed_at: string | null;
@@ -182,6 +193,7 @@ export type TaskInput = Partial<
         | 'due_date'
         | 'start_date'
         | 'is_milestone'
+        | 'progress'
     >
 > & { custom_fields?: Record<number, CustomFieldValue | null> };
 

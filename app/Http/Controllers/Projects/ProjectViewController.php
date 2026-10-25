@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\ProjectView;
 use App\Models\Status;
 use App\Models\TaskActivity;
+use App\Models\TaskDependency;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -90,6 +91,15 @@ class ProjectViewController extends Controller
             'canManageFields' => $user->can('update', $current_team),
             'tasks' => fn () => $tasks(false),
             'requests' => fn () => $tasks(true),
+            // Links between the project's tasks, for the Gantt chart and the
+            // task panel. Only the Gantt module uses them.
+            'dependencies' => fn () => $current_team->hasFeature(TeamFeature::Gantt)
+                ? TaskDependency::query()
+                    ->whereHas('successor', fn ($query) => $query->where('project_id', $project->id))
+                    ->whereHas('predecessor')
+                    ->get()
+                    ->map->toDependencyData()
+                : [],
             'openTaskId' => $openTask?->id,
             'comments' => fn () => $openTask
                 ? $openTask->comments()->visibleTo($isClient)->with('user:id,name')->get()->map->toCommentData()

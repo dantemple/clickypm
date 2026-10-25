@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Storage;
  * @property CarbonImmutable|null $due_date
  * @property CarbonImmutable|null $start_date
  * @property bool $is_milestone
+ * @property int $progress
  * @property int $position
  * @property int|null $created_by
  * @property CarbonImmutable|null $completed_at
@@ -46,12 +47,25 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, Attachment> $attachments
  * @property-read int|null $attachments_count
  * @property-read Collection<int, CustomFieldValue> $customFieldValues
+ * @property-read Collection<int, TaskDependency> $dependencies
+ * @property-read Collection<int, TaskDependency> $dependents
  */
-#[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'start_date', 'is_milestone', 'position', 'created_by'])]
+#[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'start_date', 'is_milestone', 'progress', 'position', 'created_by'])]
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
     use HasFactory, SendsLiveUpdates, Trashable;
+
+    /**
+     * The model's default attribute values.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'needs_triage' => false,
+        'is_milestone' => false,
+        'progress' => 0,
+    ];
 
     /**
      * Bootstrap the model and its traits.
@@ -154,6 +168,10 @@ class Task extends Model
             $entries[] = [$this->is_milestone ? 'milestone' : 'not_milestone', []];
         }
 
+        if ($this->wasChanged('progress')) {
+            $entries[] = ['progress', ['from' => (int) $original('progress'), 'to' => $this->progress]];
+        }
+
         if ($this->wasChanged('title')) {
             $entries[] = ['renamed', ['from' => $original('title'), 'to' => $this->title]];
         }
@@ -246,6 +264,26 @@ class Task extends Model
     }
 
     /**
+     * Links to the tasks this one waits for.
+     *
+     * @return HasMany<TaskDependency, $this>
+     */
+    public function dependencies(): HasMany
+    {
+        return $this->hasMany(TaskDependency::class, 'successor_id');
+    }
+
+    /**
+     * Links to the tasks waiting for this one.
+     *
+     * @return HasMany<TaskDependency, $this>
+     */
+    public function dependents(): HasMany
+    {
+        return $this->hasMany(TaskDependency::class, 'predecessor_id');
+    }
+
+    /**
      * Get the task's history, oldest first.
      *
      * @return HasMany<TaskActivity, $this>
@@ -282,6 +320,7 @@ class Task extends Model
             'due_date' => $this->due_date?->toDateString(),
             'start_date' => $this->start_date?->toDateString(),
             'is_milestone' => $this->is_milestone,
+            'progress' => $this->progress,
             'position' => $this->position,
             'created_by' => $this->creator?->only(['id', 'name']),
             'completed_at' => $this->completed_at?->toIso8601String(),
@@ -312,6 +351,7 @@ class Task extends Model
             'due_date' => 'date',
             'start_date' => 'date',
             'is_milestone' => 'boolean',
+            'progress' => 'integer',
             'completed_at' => 'datetime',
         ];
     }

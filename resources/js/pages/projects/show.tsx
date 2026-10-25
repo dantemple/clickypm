@@ -7,6 +7,7 @@ import {
     ListChecks,
     MoreHorizontal,
     Plus,
+    Printer,
     Search,
     Settings,
     SlidersHorizontal,
@@ -62,6 +63,7 @@ import type {
     CustomField,
     GanttZoom,
     GroupBy,
+    TaskDependency,
     Member,
     PriorityOption,
     Project,
@@ -83,6 +85,7 @@ type Props = {
     canManageFields: boolean;
     tasks: Task[];
     requests: Task[];
+    dependencies: TaskDependency[];
     openTaskId: number | null;
     comments: Comment[];
     subtasks: Subtask[];
@@ -130,6 +133,7 @@ export default function ProjectShow({
     subtasks,
     attachments,
     activity,
+    dependencies,
     members,
     priorities,
     maxUploadMegabytes,
@@ -406,6 +410,16 @@ export default function ProjectShow({
                         </ToggleGroup>
                     )}
 
+                    {view.type === 'gantt' && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.print()}
+                        >
+                            <Printer /> Print
+                        </Button>
+                    )}
+
                     <Button
                         variant={settings.show_closed ? 'secondary' : 'outline'}
                         size="sm"
@@ -450,6 +464,7 @@ export default function ProjectShow({
                             <Suspense fallback={<LoadingView />}>
                                 <GanttView
                                     tasks={visibleTasks}
+                                    dependencies={dependencies}
                                     settings={settings}
                                 />
                             </Suspense>
@@ -461,6 +476,8 @@ export default function ProjectShow({
 
             <TaskSheet
                 task={openTask}
+                tasks={[...tasks, ...requests]}
+                dependencies={dependencies}
                 details={
                     openTaskId === selectedTaskId
                         ? { comments, subtasks, attachments, activity }

@@ -241,6 +241,20 @@ function describeActivity({ type, data }: Activity): ReactNode {
             return 'made this a milestone';
         case 'not_milestone':
             return 'made this a normal task again';
+        case 'progress':
+            return (
+                <>
+                    set progress to {typeof data.to === 'number' ? data.to : 0}%
+                </>
+            );
+        case 'blocked_by_added':
+            return <>made this wait for {quote(data.title)}</>;
+        case 'blocked_by_removed':
+            return <>stopped this waiting for {quote(data.title)}</>;
+        case 'blocks_added':
+            return <>made {quote(data.title)} wait for this</>;
+        case 'blocks_removed':
+            return <>stopped {quote(data.title)} waiting for this</>;
         case 'renamed':
             return <>renamed this from {quote(data.from)}</>;
         case 'description':

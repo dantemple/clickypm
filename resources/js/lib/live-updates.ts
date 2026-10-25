@@ -21,6 +21,7 @@ const PROJECT_PROPS = [
     'workspaceFields',
     'tasks',
     'requests',
+    'dependencies',
     'members',
 ];
 
