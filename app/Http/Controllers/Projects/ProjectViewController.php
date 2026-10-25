@@ -77,6 +77,7 @@ class ProjectViewController extends Controller
                 'color' => $project->color,
                 'description' => $project->description,
                 'hidden_from_clients' => $project->hidden_from_clients,
+                'archived_at' => $project->archived_at?->toIso8601String(),
                 'canDelete' => $user->can('delete', $project),
             ],
             'canEdit' => $user->can('update', $project),

@@ -26,10 +26,13 @@ use Illuminate\Support\Facades\Storage;
  * @property bool $hidden_from_clients
  * @property int $position
  * @property int|null $created_by
+ * @property CarbonImmutable|null $archived_at
+ * @property int|null $archived_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property CarbonImmutable|null $deleted_at
  * @property-read Team $team
+ * @property-read User|null $archiver
  * @property-read Collection<int, Status> $statuses
  * @property-read Collection<int, ProjectView> $views
  * @property-read Collection<int, Task> $tasks
@@ -117,6 +120,40 @@ class Project extends Model
     }
 
     /**
+     * The person who archived the project.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function archiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    /**
+     * Projects still in use: the sidebar, dashboard, timeline, search and
+     * reminders only look at these.
+     *
+     * @param  Builder<Project>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereNull('projects.archived_at');
+    }
+
+    /**
+     * @param  Builder<Project>  $query
+     */
+    public function scopeArchived(Builder $query): void
+    {
+        $query->whereNotNull('projects.archived_at');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /**
      * Limit to projects the given viewer may see: clients miss hidden projects.
      *
      * @param  Builder<Project>  $query
@@ -143,6 +180,7 @@ class Project extends Model
     {
         return [
             'hidden_from_clients' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 

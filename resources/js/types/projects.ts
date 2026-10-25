@@ -55,6 +55,7 @@ export type SidebarProject = ProjectSummary & {
 export type Project = ProjectSummary & {
     description: string | null;
     hidden_from_clients: boolean;
+    archived_at: string | null;
     canDelete: boolean;
 };
 
