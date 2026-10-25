@@ -333,4 +333,70 @@ class TeamInvitationTest extends TestCase
 
         $this->assertFalse($invitedUser->fresh()->belongsToTeam($team));
     }
+
+    public function test_team_invitations_cannot_grant_the_owner_role()
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create();
+        $admin = User::factory()->create();
+        $team = Team::factory()->create();
+
+        $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+        $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
+
+        foreach ([$owner, $admin] as $inviter) {
+            $this->actingAs($inviter)
+                ->from(route('teams.edit', $team))
+                ->post(route('teams.invitations.store', $team), [
+                    'email' => 'second-account@example.com',
+                    'role' => TeamRole::Owner->value,
+                ])
+                ->assertSessionHasErrors('role');
+        }
+
+        $this->assertDatabaseCount('team_invitations', 0);
+        Notification::assertNothingSent();
+    }
+
+    public function test_team_invitation_addresses_are_stored_lowercased()
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+        $this->actingAs($owner)
+            ->post(route('teams.invitations.store', $team), [
+                'email' => 'Invited@Example.com',
+                'role' => TeamRole::Member->value,
+            ])
+            ->assertRedirect(route('teams.edit', $team));
+
+        $this->assertDatabaseHas('team_invitations', ['team_id' => $team->id, 'email' => 'invited@example.com']);
+    }
+
+    public function test_team_invitations_cannot_be_accepted_until_the_email_is_verified()
+    {
+        $owner = User::factory()->create();
+        $invitedUser = User::factory()->unverified()->create(['email' => 'invited@example.com']);
+        $team = Team::factory()->create();
+
+        $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+        $invitation = TeamInvitation::factory()->create([
+            'team_id' => $team->id,
+            'email' => 'invited@example.com',
+            'role' => TeamRole::Member,
+            'invited_by' => $owner->id,
+        ]);
+
+        $this->actingAs($invitedUser)
+            ->post(route('invitations.accept', $invitation))
+            ->assertRedirect(route('verification.notice'));
+
+        $this->assertFalse($invitedUser->fresh()->belongsToTeam($team));
+        $this->assertNull($invitation->fresh()->accepted_at);
+    }
 }

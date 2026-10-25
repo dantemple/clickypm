@@ -77,7 +77,7 @@ class SearchWorkspace
     {
         return Task::query()
             ->whereHas('project', fn (Builder $query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
-            ->tap(fn (Builder $query) => $this->onlyRequestsBy($query, $user, $isClient))
+            ->visibleTo($user, $isClient)
             ->where(fn (Builder $query) => $this->whereMentions($query, ['tasks.title', 'tasks.description'], $term))
             ->with(['project:id,name,color', 'status:id,name,color,is_done'])
             ->orderByRaw("CASE WHEN tasks.title {$this->operator()} ? ESCAPE '\\' THEN 0 ELSE 1 END", [$this->pattern($term)])
@@ -107,7 +107,7 @@ class SearchWorkspace
             ->visibleTo($isClient)
             ->whereHas('task', fn (Builder $query) => $query
                 ->whereHas('project', fn (Builder $query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
-                ->tap(fn (Builder $query) => $this->onlyRequestsBy($query, $user, $isClient)))
+                ->visibleTo($user, $isClient))
             ->where(fn (Builder $query) => $this->whereMentions($query, ['comments.body'], $term))
             ->with(['user:id,name', 'task:id,title,project_id', 'task.project:id,name,color'])
             ->latest('comments.created_at')
@@ -124,18 +124,6 @@ class SearchWorkspace
                 'url' => route('projects.show', [$team, $comment->task->project, 'task' => $comment->task_id]),
             ])
             ->all();
-    }
-
-    /**
-     * Clients see requests awaiting triage only when they raised them.
-     *
-     * @param  Builder<Task>  $query
-     */
-    private function onlyRequestsBy(Builder $query, User $user, bool $isClient): void
-    {
-        $query->when($isClient, fn (Builder $query) => $query->where(fn (Builder $query) => $query
-            ->where('tasks.needs_triage', false)
-            ->orWhere('tasks.created_by', $user->id)));
     }
 
     /**

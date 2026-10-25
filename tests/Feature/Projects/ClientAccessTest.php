@@ -10,6 +10,8 @@ use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -186,13 +188,13 @@ class ClientAccessTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_invited_people_who_sign_up_join_the_workspace_instead_of_getting_their_own()
+    public function test_invited_people_who_sign_up_join_the_workspace_once_they_verify_their_email()
     {
         $owner = User::factory()->create();
         $team = Team::factory()->create(['name' => 'Client A']);
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
 
-        TeamInvitation::factory()->create([
+        $invitation = TeamInvitation::factory()->create([
             'team_id' => $team->id,
             'email' => 'client@example.com',
             'role' => TeamRole::Client,
@@ -204,13 +206,93 @@ class ClientAccessTest extends TestCase
             'email' => 'Client@Example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
-        ])->assertRedirect(route('dashboard', $team));
+        ])->assertRedirect(route('verification.notice'));
 
-        $client = User::whereRaw('LOWER(email) = ?', ['client@example.com'])->firstOrFail();
+        $client = User::where('email', 'client@example.com')->firstOrFail();
 
+        // Signing up with the address proves nothing yet: no workspace of their
+        // own, and not in the one that invited them until the email is verified.
         $this->assertNull($client->personalTeam());
+        $this->assertFalse($client->belongsToTeam($team));
+        $this->assertNull($invitation->fresh()->accepted_at);
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $client->id, 'hash' => sha1($client->email)],
+        );
+
+        $this->actingAs($client)->get($verificationUrl)->assertRedirect("/{$team->slug}/dashboard?verified=1");
+
+        $client->refresh();
+
         $this->assertTrue($client->isCurrentTeam($team));
         $this->assertSame(TeamRole::Client, $client->teamRole($team));
+        $this->assertNotNull($invitation->fresh()->accepted_at);
+    }
+
+    public function test_clients_only_see_the_requests_they_raised()
+    {
+        [$owner, $client, $team] = $this->workspaceWithClient();
+        $otherClient = User::factory()->create();
+        $team->members()->attach($otherClient, ['role' => TeamRole::Client->value]);
+        $otherClient->switchTeam($team);
+
+        $project = Project::factory()->for($team)->create();
+        $view = $project->views->first();
+
+        $this->actingAs($client)
+            ->post(route('projects.tasks.store', [$team, $project]), ['title' => 'Add a contact form'])
+            ->assertRedirect();
+
+        $request = $project->tasks()->firstOrFail();
+
+        $this->actingAs($client)
+            ->get(route('projects.views.show', [$team, $project, $view, 'task' => $request->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('requests', 1)
+                ->where('openTaskId', $request->id),
+            );
+
+        $this->actingAs($otherClient)
+            ->get(route('projects.views.show', [$team, $project, $view, 'task' => $request->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('requests', 0)
+                ->where('openTaskId', null)
+                ->has('comments', 0),
+            );
+
+        $this->actingAs($otherClient)
+            ->post(route('projects.tasks.comments.store', [$team, $project, $request]), ['body' => 'Me too'])
+            ->assertForbidden();
+        $this->actingAs($otherClient)
+            ->post(route('projects.tasks.attachments.store', [$team, $project, $request]), [
+                'files' => [UploadedFile::fake()->image('mockup.png')],
+            ])
+            ->assertForbidden();
+        $this->actingAs($otherClient)
+            ->getJson(route('search', [$team, 'q' => 'contact']))
+            ->assertOk()
+            ->assertJsonCount(0, 'tasks');
+
+        $this->actingAs($client)
+            ->post(route('projects.tasks.comments.store', [$team, $project, $request]), ['body' => 'Any update?'])
+            ->assertRedirect();
+
+        $this->actingAs($owner)
+            ->get(route('projects.views.show', [$team, $project, $view, 'task' => $request->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('requests', 1)
+                ->where('openTaskId', $request->id)
+                ->has('comments', 1),
+            );
+
+        // Once the team accepts the request, it is an ordinary task every client can see.
+        $this->actingAs($owner)->post(route('projects.tasks.accept', [$team, $project, $request]))->assertRedirect();
+
+        $this->actingAs($otherClient)
+            ->get(route('projects.views.show', [$team, $project, $view, 'task' => $request->id]))
+            ->assertInertia(fn (Assert $page) => $page->has('tasks', 1)->where('openTaskId', $request->id));
     }
 
     public function test_a_removed_client_with_no_other_workspace_has_no_current_team()

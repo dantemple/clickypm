@@ -20,6 +20,8 @@ class TeamMemberController extends Controller
     {
         Gate::authorize('updateMember', $team);
 
+        abort_if($team->owner()?->is($user), 403, __('The workspace owner cannot be given another role.'));
+
         $newRole = TeamRole::from($request->validated('role'));
 
         $team->memberships()

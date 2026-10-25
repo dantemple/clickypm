@@ -2,10 +2,10 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Teams\AcceptPendingInvitations;
 use App\Actions\Teams\CreateTeam;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
-use App\Models\TeamInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +15,7 @@ class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
 
-    public function __construct(private CreateTeam $createTeam)
+    public function __construct(private CreateTeam $createTeam, private AcceptPendingInvitations $acceptInvitations)
     {
         //
     }
@@ -39,46 +39,15 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => $input['password'],
             ]);
 
-            // People who were invited (e.g. clients) join those workspaces instead of getting their own.
-            if (! $this->acceptPendingInvitations($user)) {
+            // People who were invited (e.g. clients) join those workspaces instead
+            // of getting their own. They're let in once they verify the address
+            // (see AcceptInvitationsOnVerification), so nobody can claim an
+            // invitation just by signing up with someone else's email.
+            if (! $this->acceptInvitations->pendingFor($user->email)->exists()) {
                 $this->createTeam->handle($user, $user->name."'s Workspace", isPersonal: true);
             }
 
             return $user;
         });
-    }
-
-    /**
-     * Accept every open invitation sent to the user's email address.
-     *
-     * Workspace routes still require a verified email, so an unverified
-     * sign-up cannot use the membership until they prove they own the address.
-     */
-    private function acceptPendingInvitations(User $user): bool
-    {
-        $invitations = TeamInvitation::query()
-            ->with('team')
-            ->whereRaw('LOWER(email) = ?', [strtolower($user->email)])
-            ->whereNull('accepted_at')
-            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
-            ->oldest()
-            ->get();
-
-        foreach ($invitations as $invitation) {
-            $invitation->team->memberships()->firstOrCreate(
-                ['user_id' => $user->id],
-                ['role' => $invitation->role],
-            );
-
-            $invitation->update(['accepted_at' => now()]);
-        }
-
-        if ($invitations->isEmpty()) {
-            return false;
-        }
-
-        $user->switchTeam($invitations->first()->team);
-
-        return true;
     }
 }

@@ -12,6 +12,11 @@ trait RedirectsToCurrentTeam
     {
         $team = $this->currentTeam($request);
 
+        // Invited people join their workspace once they verify their email.
+        if (! $team && ! $request->user()->hasVerifiedEmail()) {
+            return route('verification.notice', absolute: false);
+        }
+
         // Invited clients have no personal workspace, so they may have none left.
         if (! $team) {
             return route('no-workspace', absolute: false);

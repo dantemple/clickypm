@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -52,6 +53,17 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         'task_emails' => true,
         'reminder_emails' => true,
     ];
+
+    /**
+     * Emails are compared case-insensitively everywhere, so keep them
+     * lowercased and the unique index on the column means the same thing.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::set(fn (string $value) => strtolower($value));
+    }
 
     /**
      * Get the attributes that should be cast.
