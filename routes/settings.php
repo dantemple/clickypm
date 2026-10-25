@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\NotificationController;
+use App\Http\Controllers\Settings\ProfileAvatarController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Teams\CustomFieldController;
@@ -17,6 +18,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('settings/profile/avatar', [ProfileAvatarController::class, 'store'])->name('profile.avatar.store');
+    Route::delete('settings/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

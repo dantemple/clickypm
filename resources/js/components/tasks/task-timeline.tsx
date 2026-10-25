@@ -321,9 +321,8 @@ function CommentItem({ task, comment }: { task: Task; comment: Comment }) {
     const { auth } = usePage().props;
     const { members } = useProject();
     const author = comment.user?.name ?? 'Deleted user';
-    const isClient =
-        members.find((member) => member.id === comment.user?.id)?.isClient ??
-        false;
+    const member = members.find((member) => member.id === comment.user?.id);
+    const isClient = member?.isClient ?? false;
 
     return (
         <li
@@ -333,7 +332,10 @@ function CommentItem({ task, comment }: { task: Task; comment: Comment }) {
                     'bg-amber-50 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:ring-amber-500/30',
             )}
         >
-            <MemberAvatar member={{ name: author }} className="mt-0.5 size-7" />
+            <MemberAvatar
+                member={{ name: author, avatar: member?.avatar }}
+                className="mt-0.5 size-7"
+            />
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 text-xs">
                     <span className="font-medium">{author}</span>
