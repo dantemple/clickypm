@@ -34,8 +34,8 @@ class SendDueTaskReminders extends Command
             ->whereNull('completed_at')
             ->where('needs_triage', false)
             ->whereDate('due_date', '<=', today())
-            // Leave out tasks whose project is in the trash or whose workspace is gone.
-            ->whereHas('project.team')
+            // Leave out tasks whose project is archived or in the trash, or whose workspace is gone.
+            ->whereHas('project', fn ($query) => $query->active()->whereHas('team'))
             ->with(['project.team', 'assignee'])
             ->orderBy('due_date')
             ->orderBy('id')

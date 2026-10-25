@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Archive, Plus } from 'lucide-react';
 import CreateProjectModal from '@/components/projects/create-project-modal';
 import {
     SidebarGroup,
@@ -10,11 +10,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { archived } from '@/routes';
 import { show } from '@/routes/projects';
 
 export function NavProjects() {
     const page = usePage();
     const projects = page.props.projects ?? [];
+    const archivedCount = page.props.archivedProjectsCount ?? 0;
     const isClient = page.props.currentTeam?.role === 'client';
 
     return (
@@ -67,6 +69,21 @@ export function NavProjects() {
                                 <span>Create your first project</span>
                             </SidebarMenuButton>
                         </CreateProjectModal>
+                    </SidebarMenuItem>
+                )}
+                {archivedCount > 0 && (
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={page.url.startsWith(archived.url())}
+                            tooltip={{ children: 'Archived projects' }}
+                            className="text-muted-foreground"
+                        >
+                            <Link href={archived.url()} prefetch>
+                                <Archive />
+                                <span>Archived ({archivedCount})</span>
+                            </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 )}
             </SidebarMenu>

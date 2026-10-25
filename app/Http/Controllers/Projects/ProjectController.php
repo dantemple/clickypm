@@ -69,6 +69,36 @@ class ProjectController extends Controller
     }
 
     /**
+     * Put a finished project out of the way. It stays readable and keeps
+     * everything, but leaves the sidebar, dashboard, timeline, search and
+     * reminders until it's unarchived.
+     */
+    public function archive(Request $request, Team $current_team, Project $project): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        $project->forceFill(['archived_at' => now(), 'archived_by' => $request->user()->id])->save();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project archived.')]);
+
+        return to_route('dashboard', $current_team);
+    }
+
+    /**
+     * Bring an archived project back into use.
+     */
+    public function unarchive(Team $current_team, Project $project): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        $project->forceFill(['archived_at' => null, 'archived_by' => null])->save();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project unarchived.')]);
+
+        return back();
+    }
+
+    /**
      * Move the project, with everything in it, to the trash.
      */
     public function destroy(Request $request, Team $current_team, Project $project): RedirectResponse

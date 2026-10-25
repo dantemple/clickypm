@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
             'projects' => fn () => $this->sidebarProjects($user),
+            'archivedProjectsCount' => fn () => $this->archivedProjectsCount($user),
         ];
     }
 
@@ -69,6 +70,7 @@ class HandleInertiaRequests extends Middleware
         $isClient = $user->isClientOf($team);
 
         return $team->projects()
+            ->active()
             ->visibleTo($isClient)
             ->unless($isClient, fn ($query) => $query->withCount(['tasks as requests_count' => fn ($query) => $query->where('needs_triage', true)]))
             ->get(['id', 'name', 'color'])
@@ -79,5 +81,19 @@ class HandleInertiaRequests extends Middleware
                 'requests_count' => $project->requests_count ?? 0,
             ])
             ->all();
+    }
+
+    /**
+     * How many of the workspace's projects the viewer could find under Archived.
+     */
+    protected function archivedProjectsCount(?User $user): int
+    {
+        $team = $user?->currentTeam;
+
+        if (! $team) {
+            return 0;
+        }
+
+        return $team->projects()->archived()->visibleTo($user->isClientOf($team))->count();
     }
 }

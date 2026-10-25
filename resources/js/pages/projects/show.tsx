@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    Archive,
+    ArchiveRestore,
     Columns3,
     Eye,
     EyeOff,
@@ -37,6 +39,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -54,7 +57,11 @@ import { createTask, formatFileSize, matchesSearch } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
 import { useProjectLiveUpdates } from '@/lib/live-updates';
 import { saveViewSettings } from '@/lib/views';
-import { show as showProject } from '@/routes/projects';
+import {
+    archive as archiveProject,
+    show as showProject,
+    unarchive as unarchiveProject,
+} from '@/routes/projects';
 import { show as showView } from '@/routes/projects/views';
 import type {
     Activity,
@@ -178,6 +185,25 @@ export default function ProjectShow({
         });
     };
 
+    const archive = () => {
+        if (
+            confirm(
+                `Archive “${project.name}”? It leaves the sidebar, dashboard, timeline and search until it's unarchived. Nothing is deleted.`,
+            )
+        ) {
+            router.post(archiveProject.url({ project: project.id }));
+        }
+    };
+
+    const unarchive = () =>
+        router.post(
+            unarchiveProject.url({ project: project.id }),
+            {},
+            {
+                preserveScroll: true,
+            },
+        );
+
     const doneStatusIds = new Set(
         statuses.filter((status) => status.is_done).map((status) => status.id),
     );
@@ -281,10 +307,39 @@ export default function ProjectShow({
                                 >
                                     <SlidersHorizontal /> Custom fields
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {project.archived_at ? (
+                                    <DropdownMenuItem onSelect={unarchive}>
+                                        <ArchiveRestore /> Unarchive project
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem onSelect={archive}>
+                                        <Archive /> Archive project
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
                 </header>
+
+                {project.archived_at && (
+                    <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-4 py-2 text-sm">
+                        <Archive className="size-4 text-muted-foreground" />
+                        <span className="flex-1">
+                            This project is archived. It stays readable but is
+                            out of the sidebar, dashboard, timeline and search.
+                        </span>
+                        {canEdit && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={unarchive}
+                            >
+                                <ArchiveRestore /> Unarchive
+                            </Button>
+                        )}
+                    </div>
+                )}
 
                 <ViewTabs
                     project={project}

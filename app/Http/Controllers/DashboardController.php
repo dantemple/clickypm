@@ -37,6 +37,7 @@ class DashboardController extends Controller
         $isClient = $request->user()->isClientOf($team);
 
         $projects = $team->projects()
+            ->active()
             ->visibleTo($isClient)
             ->withCount([
                 'tasks' => fn ($query) => $query->where('needs_triage', false),
@@ -56,7 +57,7 @@ class DashboardController extends Controller
 
         $myTasks = Task::query()
             ->with(['project:id,name,color', 'status:id,name,color,is_done', 'creator:id,name'])
-            ->whereHas('project', fn ($query) => $query->where('team_id', $team->id)->visibleTo($isClient))
+            ->whereHas('project', fn ($query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
             ->where('assignee_id', $request->user()->id)
             ->whereNull('completed_at')
             ->orderByRaw('due_date IS NULL, due_date')

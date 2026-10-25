@@ -23,7 +23,7 @@ class TimelineController extends Controller
         $user = $request->user();
         $isClient = $user->isClientOf($current_team);
 
-        $projects = $current_team->projects()->visibleTo($isClient)->get();
+        $projects = $current_team->projects()->active()->visibleTo($isClient)->get();
 
         $tasks = Task::query()
             ->whereIn('project_id', $projects->modelKeys())
