@@ -1,4 +1,5 @@
 import {
+    ArrowDownToLine,
     Check,
     Inbox,
     Link2,
@@ -9,7 +10,7 @@ import {
     X,
 } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CustomFieldInput } from '@/components/custom-fields/custom-field-input';
 import { useProject } from '@/components/projects/project-context';
@@ -24,6 +25,7 @@ import {
     TaskAttachments,
     useAttachmentUpload,
 } from '@/components/tasks/task-attachments';
+import { TaskDependencies } from '@/components/tasks/task-dependencies';
 import { TaskSubtasks } from '@/components/tasks/task-subtasks';
 import { CommentForm, TaskTimeline } from '@/components/tasks/task-timeline';
 import { Button } from '@/components/ui/button';
@@ -52,7 +54,14 @@ import {
 } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
 import { show as showProject } from '@/routes/projects';
-import type { Activity, Attachment, Comment, Subtask, Task } from '@/types';
+import type {
+    Activity,
+    Attachment,
+    Comment,
+    Subtask,
+    Task,
+    TaskDependency,
+} from '@/types';
 
 /** The open task's extra data, loaded from the server alongside ?task=. */
 export type TaskDetailsData = {
@@ -64,10 +73,15 @@ export type TaskDetailsData = {
 
 export function TaskSheet({
     task,
+    tasks = [],
+    dependencies = [],
     details,
     onClose,
 }: {
     task: Task | null;
+    /** The project's tasks and links, for the Dependencies section. */
+    tasks?: Task[];
+    dependencies?: TaskDependency[];
     details: TaskDetailsData;
     onClose: () => void;
 }) {
@@ -78,6 +92,8 @@ export function TaskSheet({
                     <TaskDetails
                         key={task.id}
                         task={task}
+                        tasks={tasks}
+                        dependencies={dependencies}
                         details={details}
                         onClose={onClose}
                     />
@@ -94,10 +110,14 @@ export function TaskSheet({
  */
 function TaskDetails({
     task,
+    tasks,
+    dependencies,
     details,
     onClose,
 }: {
     task: Task;
+    tasks: Task[];
+    dependencies: TaskDependency[];
     details: TaskDetailsData;
     onClose: () => void;
 }) {
@@ -106,6 +126,7 @@ function TaskDetails({
     const [, copy] = useClipboard();
     const upload = useAttachmentUpload(task);
     const [addingSubtask, setAddingSubtask] = useState(false);
+    const [addingDependency, setAddingDependency] = useState(false);
     // Follows other people's edits, except while you're typing in it.
     const {
         draft: title,
@@ -114,6 +135,10 @@ function TaskDetails({
     } = useSyncedDraft(task.title);
 
     const showSubtasks = details.subtasks.length > 0 || addingSubtask;
+    const linked = dependencies.some(
+        (d) => d.successor_id === task.id || d.predecessor_id === task.id,
+    );
+    const showDependencies = ganttEnabled && (linked || addingDependency);
     const showAttachments =
         details.attachments.length > 0 || upload.progress !== null;
 
@@ -302,6 +327,11 @@ function TaskDetails({
                                     }
                                 />
                             </dd>
+
+                            <dt className="text-muted-foreground">Progress</dt>
+                            <dd>
+                                <ProgressInput task={task} />
+                            </dd>
                         </>
                     )}
 
@@ -322,6 +352,15 @@ function TaskDetails({
 
                 <Description task={task} />
 
+                {showDependencies && (
+                    <TaskDependencies
+                        task={task}
+                        tasks={tasks}
+                        dependencies={dependencies}
+                        autoFocus={addingDependency}
+                    />
+                )}
+
                 {showSubtasks && (
                     <TaskSubtasks
                         task={task}
@@ -339,6 +378,16 @@ function TaskDetails({
                 )}
 
                 <div className="flex flex-wrap gap-1 border-t px-3 py-2">
+                    {ganttEnabled && canEdit && !showDependencies && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => setAddingDependency(true)}
+                        >
+                            <ArrowDownToLine /> Dependency
+                        </Button>
+                    )}
                     {canEdit && !showSubtasks && (
                         <Button
                             variant="ghost"
@@ -432,5 +481,50 @@ function Description({ task }: { task: Task }) {
                 </button>
             )}
         </section>
+    );
+}
+
+/** A 0 to 100 slider; done tasks read 100 and can't be changed. */
+function ProgressInput({ task }: { task: Task }) {
+    const { canEdit } = useProject();
+    const value = task.completed_at ? 100 : task.progress;
+    const { draft, setDraft, focusProps } = useSyncedDraft(String(value));
+    const committed = useRef(value);
+
+    const commit = () => {
+        const next = Number(draft);
+
+        if (!task.completed_at && next !== committed.current) {
+            committed.current = next;
+            updateTask(task, { progress: next });
+        }
+    };
+
+    if (!canEdit) {
+        return <span className="text-sm">{value}%</span>;
+    }
+
+    return (
+        <span className="flex items-center gap-3">
+            <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={draft}
+                disabled={!!task.completed_at}
+                aria-label="Progress"
+                className="h-1.5 w-40 accent-primary disabled:opacity-50"
+                onChange={(event) => setDraft(event.target.value)}
+                onFocus={focusProps.onFocus}
+                onBlur={() => {
+                    focusProps.onBlur();
+                    commit();
+                }}
+                onPointerUp={commit}
+                onKeyUp={commit}
+            />
+            <span className="w-10 text-sm tabular-nums">{draft}%</span>
+        </span>
     );
 }

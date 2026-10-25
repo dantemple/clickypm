@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Projects\AttachmentController;
 use App\Http\Controllers\Projects\CommentController;
+use App\Http\Controllers\Projects\DependencyController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\Projects\ProjectCustomFieldController;
 use App\Http\Controllers\Projects\ProjectStatusController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Projects\SubtaskController;
 use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\TrashController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +26,7 @@ Route::prefix('{current_team}')
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
         Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
+        Route::get('timeline', TimelineController::class)->name('timeline');
 
         Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
         Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
@@ -52,6 +55,9 @@ Route::prefix('{current_team}')
         Route::get('projects/{project}/tasks/{task}/attachments/{attachment}', [AttachmentController::class, 'download'])->name('projects.tasks.attachments.download');
         Route::get('projects/{project}/tasks/{task}/attachments/{attachment}/preview', [AttachmentController::class, 'preview'])->name('projects.tasks.attachments.preview');
         Route::delete('projects/{project}/tasks/{task}/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('projects.tasks.attachments.destroy');
+
+        Route::post('projects/{project}/tasks/{task}/dependencies', [DependencyController::class, 'store'])->name('projects.tasks.dependencies.store');
+        Route::delete('projects/{project}/dependencies/{dependency}', [DependencyController::class, 'destroy'])->name('projects.dependencies.destroy');
 
         Route::post('projects/{project}/tasks/{task}/comments', [CommentController::class, 'store'])->name('projects.tasks.comments.store');
         Route::delete('projects/{project}/tasks/{task}/comments/{comment}', [CommentController::class, 'destroy'])->name('projects.tasks.comments.destroy');

@@ -55,6 +55,24 @@ class TaskScheduleTest extends TestCase
         $this->actingAs($user)->patch($update, ['start_date' => '2027-01-01'])->assertSessionHasNoErrors();
     }
 
+    public function test_progress_is_a_whole_percentage()
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->for($user->currentTeam)->create();
+        $task = Task::factory()->for($project)->create();
+        $update = route('projects.tasks.update', [$user->currentTeam, $project, $task]);
+
+        $this->assertSame(0, $task->progress);
+
+        $this->actingAs($user)->patch($update, ['progress' => 45])->assertSessionHasNoErrors();
+        $this->assertSame(45, $task->fresh()->progress);
+        $this->assertSame(['from' => 0, 'to' => 45], $task->activities()->where('type', 'progress')->first()->data);
+
+        $this->actingAs($user)->patch($update, ['progress' => 101])->assertSessionHasErrors('progress');
+        $this->actingAs($user)->patch($update, ['progress' => -1])->assertSessionHasErrors('progress');
+        $this->actingAs($user)->patch($update, ['progress' => 'half'])->assertSessionHasErrors('progress');
+    }
+
     public function test_schedule_changes_are_recorded_in_the_history()
     {
         $user = User::factory()->create();

@@ -154,3 +154,27 @@
     opacity: 0.6;
     pointer-events: none;
 }
+
+/* Printing a Gantt view or the timeline: just the chart, landscape. */
+@media print {
+    @page {
+        size: landscape;
+        margin: 1cm;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+
+    .gantt-print,
+    .gantt-print * {
+        visibility: visible;
+    }
+
+    .gantt-print {
+        position: fixed;
+        inset: 0;
+        border: 0;
+        border-radius: 0;
+    }
+}

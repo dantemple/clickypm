@@ -21,6 +21,8 @@ import {
     store as storeSubtaskRoute,
     update as updateSubtaskRoute,
 } from '@/routes/projects/tasks/subtasks';
+import { destroy as destroyDependencyRoute } from '@/routes/projects/dependencies';
+import { store as storeDependencyRoute } from '@/routes/projects/tasks/dependencies';
 import type {
     Attachment,
     Comment,
@@ -28,6 +30,7 @@ import type {
     Subtask,
     SubtaskInput,
     Task,
+    TaskDependency,
     TaskInput,
 } from '@/types';
 
@@ -308,5 +311,27 @@ export function matchesSearch(task: Task, search: string): boolean {
         term === '' ||
         task.title.toLowerCase().includes(term) ||
         (task.description ?? '').toLowerCase().includes(term)
+    );
+}
+
+/** Make the task wait for another task in its project. */
+export function addDependency(task: Task, predecessorId: number): void {
+    router.post(
+        storeDependencyRoute.url({ project: task.project_id, task: task.id }),
+        { predecessor_id: predecessorId },
+        visitOptions,
+    );
+}
+
+export function removeDependency(
+    projectId: number,
+    dependency: TaskDependency,
+): void {
+    router.delete(
+        destroyDependencyRoute.url({
+            project: projectId,
+            dependency: dependency.id,
+        }),
+        visitOptions,
     );
 }

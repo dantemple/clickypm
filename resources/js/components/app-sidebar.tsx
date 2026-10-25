@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, Trash2 } from 'lucide-react';
+import { ChartGantt, LayoutGrid, Trash2 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { SearchButton } from '@/components/command-palette';
 import { NavMain } from '@/components/nav-main';
@@ -15,7 +15,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, timeline } from '@/routes';
 import { index as trashIndex } from '@/routes/trash';
 import type { NavItem } from '@/types';
 
@@ -32,6 +32,16 @@ export function AppSidebar() {
             href: dashboardUrl,
             icon: LayoutGrid,
         },
+        // The workspace timeline is part of the Gantt module.
+        ...(currentTeam?.features?.gantt
+            ? [
+                  {
+                      title: 'Timeline',
+                      href: timeline(currentTeam.slug),
+                      icon: ChartGantt,
+                  },
+              ]
+            : []),
         // Clients can't delete anything, so they have no trash to look at.
         ...(currentTeam && currentTeam.role !== 'client'
             ? [
