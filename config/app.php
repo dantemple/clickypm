@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Registration
+    |--------------------------------------------------------------------------
+    |
+    | "open" lets anyone create an account. "invite" only lets people sign up
+    | when a workspace has a pending invitation for their email address, so
+    | set it in production once the app runs on invites.
+    |
+    */
+
+    'registration' => env('REGISTRATION_MODE', 'open'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
