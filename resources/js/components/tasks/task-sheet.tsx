@@ -21,6 +21,7 @@ import {
     PriorityPicker,
     StatusPicker,
 } from '@/components/tasks/pickers';
+import { TagPicker } from '@/components/tasks/tag-picker';
 import {
     TaskAttachments,
     useAttachmentUpload,
@@ -295,6 +296,13 @@ function TaskDetails({
                     <dt className="text-muted-foreground">Due date</dt>
                     <dd>
                         <DueDatePicker task={task} placeholder="Empty" />
+                    </dd>
+
+                    <dt className="self-start pt-0.5 text-muted-foreground">
+                        Tags
+                    </dt>
+                    <dd className="min-w-0">
+                        <TagPicker task={task} />
                     </dd>
 
                     {ganttEnabled && (

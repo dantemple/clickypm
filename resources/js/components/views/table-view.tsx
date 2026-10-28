@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { CustomFieldInput } from '@/components/custom-fields/custom-field-input';
 import { useProject } from '@/components/projects/project-context';
 import { AddTaskRow } from '@/components/tasks/add-task-row';
+import { TagList } from '@/components/tasks/tag-badge';
 import { TaskBadges } from '@/components/tasks/task-badges';
 import {
     AssigneePicker,
@@ -31,6 +32,7 @@ export const TABLE_COLUMNS: Record<TaskColumn, string> = {
     status: 'Status',
     assignee: 'Assignee',
     priority: 'Priority',
+    tags: 'Tags',
     due_date: 'Due date',
     created_at: 'Created',
 };
@@ -170,6 +172,8 @@ function TableRow({ task, columns }: { task: Task; columns: Column[] }) {
                 return <AssigneePicker task={task} showName />;
             case 'priority':
                 return <PriorityPicker task={task} showLabel />;
+            case 'tags':
+                return <TagList tags={task.tags} />;
             case 'due_date':
                 return <DueDatePicker task={task} />;
             case 'created_at':

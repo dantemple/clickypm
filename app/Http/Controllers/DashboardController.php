@@ -56,7 +56,7 @@ class DashboardController extends Controller
             ]);
 
         $myTasks = Task::query()
-            ->with(['project:id,name,color', 'status:id,name,color,is_done', 'creator:id,name'])
+            ->with(['project:id,name,color', 'status:id,name,color,is_done', 'creator:id,name', 'tags'])
             ->whereHas('project', fn ($query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
             ->where('assignee_id', $request->user()->id)
             ->whereNull('completed_at')

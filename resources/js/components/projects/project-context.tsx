@@ -5,6 +5,7 @@ import type {
     PriorityOption,
     Project,
     Status,
+    Tag,
     Task,
 } from '@/types';
 
@@ -15,6 +16,8 @@ type ProjectContextValue = {
     priorities: PriorityOption[];
     /** The custom fields the project uses, as far as this viewer may see. */
     customFields: CustomField[];
+    /** The project's tags, for the picker. */
+    tags: Tag[];
     /** False for clients: they can read, comment and request, but not edit. */
     canEdit: boolean;
     openTask: (task: Task) => void;

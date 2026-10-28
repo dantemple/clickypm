@@ -38,6 +38,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, Task> $tasks
  * @property-read Collection<int, CustomField> $customFields
  * @property-read Collection<int, TaskDependency> $dependencies
+ * @property-read Collection<int, Tag> $tags
  * @property-read int|null $tasks_count
  * @property-read int|null $done_tasks_count
  * @property-read int|null $requests_count
@@ -97,6 +98,16 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    /**
+     * Get the project's tags in name order.
+     *
+     * @return HasMany<Tag, $this>
+     */
+    public function tags(): HasMany
+    {
+        return $this->hasMany(Tag::class)->orderBy('name');
     }
 
     /**

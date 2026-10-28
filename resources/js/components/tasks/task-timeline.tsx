@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { MemberAvatar, StatusBadge } from '@/components/tasks/pickers';
+import { TagBadge } from '@/components/tasks/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -271,6 +272,21 @@ function describeActivity({ type, data }: Activity): ReactNode {
             return <>attached {quote(data.name)}</>;
         case 'attachment_removed':
             return <>removed the attachment {quote(data.name)}</>;
+        case 'tagged':
+            return (
+                <>
+                    added the tag{' '}
+                    <TagBadge
+                        tag={{
+                            name: text(data.name),
+                            color: text(data.color, '#64748b'),
+                        }}
+                        className="mx-0.5 align-middle"
+                    />
+                </>
+            );
+        case 'untagged':
+            return <>removed the tag {quote(data.name)}</>;
         case 'custom_field':
             return describeFieldChange(data);
         default:

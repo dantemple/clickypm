@@ -10,6 +10,7 @@ use App\Http\Controllers\Projects\DependencyController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\Projects\ProjectCustomFieldController;
 use App\Http\Controllers\Projects\ProjectStatusController;
+use App\Http\Controllers\Projects\ProjectTagController;
 use App\Http\Controllers\Projects\ProjectViewController;
 use App\Http\Controllers\Projects\SubtaskController;
 use App\Http\Controllers\Projects\TaskController;
@@ -43,6 +44,7 @@ Route::prefix('{current_team}')
 
         Route::put('projects/{project}/statuses', [ProjectStatusController::class, 'update'])->name('projects.statuses.update');
         Route::put('projects/{project}/custom-fields', [ProjectCustomFieldController::class, 'update'])->name('projects.fields.update');
+        Route::put('projects/{project}/tags', [ProjectTagController::class, 'update'])->name('projects.tags.update');
 
         Route::post('projects/{project}/views', [ProjectViewController::class, 'store'])->name('projects.views.store');
         Route::get('projects/{project}/views/{view}', [ProjectViewController::class, 'show'])->name('projects.views.show');

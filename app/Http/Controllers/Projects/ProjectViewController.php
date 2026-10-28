@@ -27,7 +27,7 @@ class ProjectViewController extends Controller
     /**
      * Columns a table view can show or sort by.
      */
-    private const COLUMNS = ['status', 'assignee', 'priority', 'due_date', 'created_at'];
+    private const COLUMNS = ['status', 'assignee', 'priority', 'tags', 'due_date', 'created_at'];
 
     /**
      * Ids of the workspace fields clients may see, once looked up.
@@ -58,6 +58,7 @@ class ProjectViewController extends Controller
             ->visibleTo($user, $isClient)
             ->with([
                 'creator:id,name',
+                'tags',
                 'customFieldValues' => fn ($query) => $query->whereIn('custom_field_id', $customFields->modelKeys()),
             ])
             ->withCount([
@@ -85,6 +86,7 @@ class ProjectViewController extends Controller
             'views' => $project->views->filter(fn (ProjectView $view) => $this->available($view, $current_team))->values()->map->toViewData(),
             'view' => $view->toViewData(),
             'statuses' => $project->statuses->map(fn (Status $status) => $status->only(['id', 'name', 'color', 'is_done'])),
+            'tags' => $project->tags()->withCount('tasks')->get()->map->toTagData(),
             'customFields' => $customFields->map->toFieldData(),
             // Everything the workspace defines, for choosing what the project uses.
             'workspaceFields' => fn () => $user->can('update', $project)
