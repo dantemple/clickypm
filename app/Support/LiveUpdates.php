@@ -23,6 +23,21 @@ class LiveUpdates
      */
     private array $projects = [];
 
+    /**
+     * Workspaces that changed without any of their (current) projects
+     * being saved, such as the one a project was just moved out of.
+     *
+     * @var array<int, int>
+     */
+    private array $teams = [];
+
+    public function workspaceChanged(int $teamId): void
+    {
+        if (! in_array($teamId, $this->teams, true)) {
+            $this->teams[] = $teamId;
+        }
+    }
+
     public function projectChanged(int $projectId, ?int $taskId = null): void
     {
         $this->projects[$projectId] ??= [];
@@ -34,10 +49,10 @@ class LiveUpdates
 
     public function flush(): void
     {
-        $projects = $this->projects;
-        $this->projects = [];
+        [$projects, $teams] = [$this->projects, $this->teams];
+        [$this->projects, $this->teams] = [[], []];
 
-        if ($projects === []) {
+        if ($projects === [] && $teams === []) {
             return;
         }
 
@@ -48,8 +63,9 @@ class LiveUpdates
 
             Project::withTrashed()
                 ->whereKey(array_keys($projects))
-                ->distinct()
                 ->pluck('team_id')
+                ->merge($teams)
+                ->unique()
                 ->each(fn (int $teamId) => broadcast(new WorkspaceChanged($teamId))->toOthers());
         } catch (Throwable $exception) {
             // The change itself has been saved; a missed live update just

@@ -5,6 +5,7 @@ import {
     Columns3,
     Eye,
     EyeOff,
+    FolderInput,
     Layers,
     ListChecks,
     MoreHorizontal,
@@ -16,6 +17,10 @@ import {
 } from 'lucide-react';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { ProjectContext } from '@/components/projects/project-context';
+import {
+    MoveProjectDialog,
+    useMoveDestinations,
+} from '@/components/projects/move-project-dialog';
 import { ProjectFieldsDialog } from '@/components/projects/project-fields-dialog';
 import { ProjectSettingsDialog } from '@/components/projects/project-settings-dialog';
 import { StatusesDialog } from '@/components/projects/statuses-dialog';
@@ -152,6 +157,8 @@ export default function ProjectShow({
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [statusesOpen, setStatusesOpen] = useState(false);
     const [fieldsOpen, setFieldsOpen] = useState(false);
+    const [moveOpen, setMoveOpen] = useState(false);
+    const canMove = project.canDelete && useMoveDestinations().length > 0;
     const [newTaskOpen, setNewTaskOpen] = useState(false);
     // The Gantt chart is client-only: server rendering can't wait for a
     // lazy chunk, so it gets the spinner until the page has mounted.
@@ -315,6 +322,13 @@ export default function ProjectShow({
                                 ) : (
                                     <DropdownMenuItem onSelect={archive}>
                                         <Archive /> Archive project
+                                    </DropdownMenuItem>
+                                )}
+                                {canMove && (
+                                    <DropdownMenuItem
+                                        onSelect={() => setMoveOpen(true)}
+                                    >
+                                        <FolderInput /> Move to workspace
                                     </DropdownMenuItem>
                                 )}
                             </DropdownMenuContent>
@@ -560,6 +574,12 @@ export default function ProjectShow({
                         project={project}
                         open={settingsOpen}
                         onOpenChange={setSettingsOpen}
+                    />
+
+                    <MoveProjectDialog
+                        project={project}
+                        open={moveOpen}
+                        onOpenChange={setMoveOpen}
                     />
 
                     <StatusesDialog
