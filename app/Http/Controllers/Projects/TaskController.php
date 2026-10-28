@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Projects;
 
 use App\Actions\Tasks\SaveCustomFieldValues;
 use App\Actions\Tasks\SendTaskNotifications;
+use App\Actions\Tasks\SyncTaskTags;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tasks\SaveTaskRequest;
 use App\Models\Attachment;
@@ -26,13 +27,13 @@ class TaskController extends Controller
      * Clients can only suggest a title and description; their tasks wait in
      * the project's request inbox until someone on the team triages them.
      */
-    public function store(SaveTaskRequest $request, Team $current_team, Project $project, SendTaskNotifications $notifications, SaveCustomFieldValues $customFields): RedirectResponse
+    public function store(SaveTaskRequest $request, Team $current_team, Project $project, SendTaskNotifications $notifications, SaveCustomFieldValues $customFields, SyncTaskTags $tags): RedirectResponse
     {
         Gate::authorize('view', $project);
 
         $isClient = $request->user()->isClientOf($current_team);
 
-        $fields = $request->safe()->except(['attachments', 'custom_fields']);
+        $fields = $request->safe()->except(['attachments', 'custom_fields', 'tag_ids', 'new_tags']);
 
         $task = $project->tasks()->create([
             'status_id' => $project->defaultStatus()->id,
@@ -45,6 +46,7 @@ class TaskController extends Controller
 
         if (! $isClient) {
             $customFields->handle($task, $request->validated('custom_fields', []));
+            $tags->handle($task, $request->validated('tag_ids'), $request->validated('new_tags', []));
         }
 
         foreach ($request->file('attachments', []) as $file) {
@@ -67,13 +69,14 @@ class TaskController extends Controller
     /**
      * Update one or more of a task's fields.
      */
-    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, SaveCustomFieldValues $customFields, SendTaskNotifications $notifications): RedirectResponse
+    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, SaveCustomFieldValues $customFields, SyncTaskTags $tags, SendTaskNotifications $notifications): RedirectResponse
     {
         Gate::authorize('update', $project);
 
-        $task->update($request->safe()->except(['attachments', 'custom_fields']));
+        $task->update($request->safe()->except(['attachments', 'custom_fields', 'tag_ids', 'new_tags']));
 
         $customFields->handle($task, $request->validated('custom_fields', []));
+        $tags->handle($task, $request->validated('tag_ids'), $request->validated('new_tags', []));
 
         if ($task->wasChanged('assignee_id') && $task->assignee_id) {
             $notifications->taskAssigned($task, $request->user());

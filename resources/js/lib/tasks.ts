@@ -44,6 +44,9 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
     4: '#9ca3af',
 };
 
+/** Matches Tag::MAX_PER_PROJECT on the server. */
+export const MAX_TAGS_PER_PROJECT = 50;
+
 export const PROJECT_COLORS = [
     '#7c3aed',
     '#3b82f6',
@@ -310,7 +313,8 @@ export function matchesSearch(task: Task, search: string): boolean {
     return (
         term === '' ||
         task.title.toLowerCase().includes(term) ||
-        (task.description ?? '').toLowerCase().includes(term)
+        (task.description ?? '').toLowerCase().includes(term) ||
+        task.tags.some((tag) => tag.name.toLowerCase().includes(term))
     );
 }
 

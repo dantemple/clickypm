@@ -29,7 +29,7 @@ class TimelineController extends Controller
             ->whereIn('project_id', $projects->modelKeys())
             ->where('needs_triage', false)
             ->whereNotNull('due_date')
-            ->with('creator:id,name')
+            ->with(['creator:id,name', 'tags'])
             ->orderBy('project_id')
             ->orderBy('position')
             ->get();

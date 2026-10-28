@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { AddTaskRow } from '@/components/tasks/add-task-row';
+import { TagList } from '@/components/tasks/tag-badge';
 import { TaskBadges } from '@/components/tasks/task-badges';
 import {
     AssigneePicker,
@@ -127,6 +128,7 @@ function ListRow({ task, showStatus }: { task: Task; showStatus: boolean }) {
                 >
                     {task.title}
                 </span>
+                <TagList tags={task.tags} className="hidden md:flex" />
                 <TaskBadges task={task} />
                 {showStatus && (
                     <StatusPicker task={task} className="ml-auto shrink-0" />

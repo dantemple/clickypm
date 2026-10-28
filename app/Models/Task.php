@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -50,6 +51,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, CustomFieldValue> $customFieldValues
  * @property-read Collection<int, TaskDependency> $dependencies
  * @property-read Collection<int, TaskDependency> $dependents
+ * @property-read Collection<int, Tag> $tags
  */
 #[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'start_date', 'is_milestone', 'progress', 'position', 'created_by'])]
 class Task extends Model
@@ -265,6 +267,16 @@ class Task extends Model
     }
 
     /**
+     * Get the task's tags, in name order.
+     *
+     * @return BelongsToMany<Tag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->withTimestamps()->orderBy('tags.name');
+    }
+
+    /**
      * Links to the tasks this one waits for.
      *
      * @return HasMany<TaskDependency, $this>
@@ -347,6 +359,8 @@ class Task extends Model
             'custom_fields' => (object) ($this->relationLoaded('customFieldValues')
                 ? $this->customFieldValues->pluck('value', 'custom_field_id')->all()
                 : []),
+            // Only sent where the caller loaded them.
+            'tags' => $this->relationLoaded('tags') ? $this->tags->map->toTagData()->values()->all() : [],
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

@@ -31,6 +31,7 @@ import {
     PriorityFlag,
     StatusBadge,
 } from '@/components/tasks/pickers';
+import { TagBadge } from '@/components/tasks/tag-badge';
 import { TaskBadges } from '@/components/tasks/task-badges';
 import { formatDue, isOverdue, moveTask } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
@@ -300,6 +301,14 @@ function TaskCard({ task, className }: { task: Task; className?: string }) {
             >
                 {task.title}
             </p>
+
+            {task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                    {task.tags.map((tag) => (
+                        <TagBadge key={tag.id} tag={tag} />
+                    ))}
+                </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {task.priority && <PriorityFlag priority={task.priority} />}

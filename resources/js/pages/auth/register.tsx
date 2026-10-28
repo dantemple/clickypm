@@ -1,17 +1,17 @@
-import { Form, Head } from "@inertiajs/react";
-import { MailIcon } from "lucide-react";
-import InputError from "@/components/input-error";
-import PasswordInput from "@/components/password-input";
-import TeamInvitationAlert from "@/components/team-invitation-alert";
-import TextLink from "@/components/text-link";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
-import { login } from "@/routes";
-import { store } from "@/routes/register";
-import type { TeamInvitationContext } from "@/types";
+import { Form, Head } from '@inertiajs/react';
+import { MailIcon } from 'lucide-react';
+import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
+import TeamInvitationAlert from '@/components/team-invitation-alert';
+import TextLink from '@/components/text-link';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import { login } from '@/routes';
+import { store } from '@/routes/register';
+import type { TeamInvitationContext } from '@/types';
 
 type Props = {
     passwordRules: string;
@@ -29,7 +29,7 @@ export default function Register({
             <Head title="Register" />
             <Form
                 {...store.form()}
-                resetOnSuccess={["password", "password_confirmation"]}
+                resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
@@ -130,7 +130,7 @@ export default function Register({
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{" "}
+                            Already have an account?{' '}
                             <TextLink
                                 href={
                                     teamInvitation
@@ -156,6 +156,6 @@ export default function Register({
 }
 
 Register.layout = {
-    title: "Create an account",
-    description: "Enter your details below to create your account",
+    title: 'Create an account',
+    description: 'Enter your details below to create your account',
 };

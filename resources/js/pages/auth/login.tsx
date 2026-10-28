@@ -1,18 +1,18 @@
-import { Form, Head } from "@inertiajs/react";
-import InputError from "@/components/input-error";
-import PasswordInput from "@/components/password-input";
-import TeamInvitationAlert from "@/components/team-invitation-alert";
-import TextLink from "@/components/text-link";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
-import { register } from "@/routes";
-import { store } from "@/routes/login";
-import { request } from "@/routes/password";
-import PasskeyVerify from "@/components/passkey-verify";
-import type { TeamInvitationContext } from "@/types";
+import { Form, Head } from '@inertiajs/react';
+import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
+import TeamInvitationAlert from '@/components/team-invitation-alert';
+import TextLink from '@/components/text-link';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import { register } from '@/routes';
+import { store } from '@/routes/login';
+import { request } from '@/routes/password';
+import PasskeyVerify from '@/components/passkey-verify';
+import type { TeamInvitationContext } from '@/types';
 
 type Props = {
     status?: string;
@@ -42,7 +42,7 @@ export default function Login({
 
             <Form
                 {...store.form()}
-                resetOnSuccess={["password"]}
+                resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
@@ -110,7 +110,7 @@ export default function Login({
 
                         {(teamInvitation || !inviteOnly) && (
                             <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{" "}
+                                Don't have an account?{' '}
                                 <TextLink
                                     href={register({
                                         query: {
@@ -138,6 +138,6 @@ export default function Login({
 }
 
 Login.layout = {
-    title: "Log in to your account",
-    description: "Enter your email and password below to log in",
+    title: 'Log in to your account',
+    description: 'Enter your email and password below to log in',
 };

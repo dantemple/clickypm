@@ -17,6 +17,7 @@ const PROJECT_PROPS = [
     'views',
     'view',
     'statuses',
+    'tags',
     'customFields',
     'workspaceFields',
     'tasks',

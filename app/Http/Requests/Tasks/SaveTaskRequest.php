@@ -6,6 +6,7 @@ use App\Enums\TaskPriority;
 use App\Models\Attachment;
 use App\Models\CustomField;
 use App\Models\Project;
+use App\Models\Tag;
 use App\Models\Task;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,6 +40,12 @@ class SaveTaskRequest extends FormRequest
             'start_date' => ['sometimes', 'nullable', 'date'],
             'is_milestone' => ['sometimes', 'boolean'],
             'progress' => ['sometimes', 'integer', 'min:0', 'max:100'],
+            // Replaces the task's tags with these existing ones...
+            'tag_ids' => ['sometimes', 'array', 'max:'.Tag::MAX_PER_PROJECT],
+            'tag_ids.*' => ['integer', 'distinct', Rule::exists('tags', 'id')->where('project_id', $project->id)],
+            // ...and makes these (where they don't exist yet) and adds them.
+            'new_tags' => ['sometimes', 'array', 'max:10'],
+            'new_tags.*' => ['string', 'min:1', 'max:'.Tag::MAX_NAME_LENGTH, 'distinct:ignore_case'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES],
             // Values keyed by field id, for fields the project uses.

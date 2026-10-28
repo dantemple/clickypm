@@ -94,6 +94,8 @@ export function sortTasks(
                     : null;
             case 'priority':
                 return task.priority;
+            case 'tags':
+                return task.tags[0]?.name.toLowerCase() ?? null;
             case 'due_date':
                 return task.due_date;
             case 'created_at':

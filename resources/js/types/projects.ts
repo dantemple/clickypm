@@ -17,6 +17,7 @@ export type TaskColumn =
     | 'status'
     | 'assignee'
     | 'priority'
+    | 'tags'
     | 'due_date'
     | 'created_at';
 
@@ -71,6 +72,15 @@ export type Status = {
     name: string;
     color: string;
     is_done: boolean;
+};
+
+/** A label a project's tasks can carry; made up on the spot from a task. */
+export type Tag = {
+    id: number;
+    name: string;
+    color: string;
+    /** How many of the project's tasks carry it; only sent with the project's tag list. */
+    tasks_count?: number;
 };
 
 export type CustomFieldType =
@@ -140,6 +150,7 @@ export type Task = {
     attachments_count: number;
     /** Values keyed by custom field id; unset fields are missing. */
     custom_fields: Record<number, CustomFieldValue>;
+    tags: Tag[];
     created_at: string;
     updated_at: string;
 };
@@ -196,7 +207,13 @@ export type TaskInput = Partial<
         | 'is_milestone'
         | 'progress'
     >
-> & { custom_fields?: Record<number, CustomFieldValue | null> };
+> & {
+    custom_fields?: Record<number, CustomFieldValue | null>;
+    /** Replaces the task's tags with these existing ones. */
+    tag_ids?: number[];
+    /** Names to make (where new) and add on top. */
+    new_tags?: string[];
+};
 
 export type DashboardTask = Task & {
     project: ProjectSummary;

@@ -14,6 +14,7 @@ import {
     Search,
     Settings,
     SlidersHorizontal,
+    Tags,
 } from 'lucide-react';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { ProjectContext } from '@/components/projects/project-context';
@@ -24,6 +25,7 @@ import {
 import { ProjectFieldsDialog } from '@/components/projects/project-fields-dialog';
 import { ProjectSettingsDialog } from '@/components/projects/project-settings-dialog';
 import { StatusesDialog } from '@/components/projects/statuses-dialog';
+import { TagsDialog } from '@/components/projects/tags-dialog';
 import { ViewTabs } from '@/components/projects/view-tabs';
 import { RequestsInbox } from '@/components/tasks/requests-inbox';
 import { TaskSheet } from '@/components/tasks/task-sheet';
@@ -82,6 +84,7 @@ import type {
     ProjectView,
     Status,
     Subtask,
+    Tag,
     Task,
     ViewSettings,
 } from '@/types';
@@ -92,6 +95,7 @@ type Props = {
     views: ProjectView[];
     view: ProjectView;
     statuses: Status[];
+    tags: Tag[];
     customFields: CustomField[];
     workspaceFields: CustomField[];
     canManageFields: boolean;
@@ -135,6 +139,7 @@ export default function ProjectShow({
     views,
     view,
     statuses,
+    tags,
     customFields,
     workspaceFields,
     canManageFields,
@@ -156,6 +161,7 @@ export default function ProjectShow({
     useProjectLiveUpdates(project.id, selectedTaskId);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [statusesOpen, setStatusesOpen] = useState(false);
+    const [tagsOpen, setTagsOpen] = useState(false);
     const [fieldsOpen, setFieldsOpen] = useState(false);
     const [moveOpen, setMoveOpen] = useState(false);
     const canMove = project.canDelete && useMoveDestinations().length > 0;
@@ -259,6 +265,7 @@ export default function ProjectShow({
                 members,
                 priorities,
                 customFields,
+                tags,
                 canEdit,
                 openTask: (task) => selectTask(task.id),
             }}
@@ -308,6 +315,11 @@ export default function ProjectShow({
                                     onSelect={() => setStatusesOpen(true)}
                                 >
                                     <ListChecks /> Edit statuses
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => setTagsOpen(true)}
+                                >
+                                    <Tags /> Edit tags
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onSelect={() => setFieldsOpen(true)}
@@ -587,6 +599,13 @@ export default function ProjectShow({
                         statuses={statuses}
                         open={statusesOpen}
                         onOpenChange={setStatusesOpen}
+                    />
+
+                    <TagsDialog
+                        project={project}
+                        tags={tags}
+                        open={tagsOpen}
+                        onOpenChange={setTagsOpen}
                     />
 
                     <ProjectFieldsDialog
