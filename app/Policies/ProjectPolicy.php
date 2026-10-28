@@ -39,6 +39,18 @@ class ProjectPolicy
     }
 
     /**
+     * Determine whether the user can move the project to another workspace:
+     * taking it out of this one is as big a deal as deleting it, and they
+     * must be able to create projects in the destination.
+     */
+    public function move(User $user, Project $project, Team $destination): bool
+    {
+        return $destination->isNot($project->team)
+            && $this->delete($user, $project)
+            && $this->create($user, $destination);
+    }
+
+    /**
      * Determine whether the user can delete the project.
      */
     public function delete(User $user, Project $project): bool

@@ -38,6 +38,7 @@ Route::prefix('{current_team}')
         Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
         Route::post('projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::post('projects/{project}/unarchive', [ProjectController::class, 'unarchive'])->name('projects.unarchive');
+        Route::post('projects/{project}/move', [ProjectController::class, 'move'])->name('projects.move');
         Route::get('archived', [ArchivedProjectController::class, 'index'])->name('archived');
 
         Route::put('projects/{project}/statuses', [ProjectStatusController::class, 'update'])->name('projects.statuses.update');

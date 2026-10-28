@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Actions\Projects\CreateProject;
+use App\Actions\Projects\MoveProject;
 use App\Enums\ViewType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Projects\SaveProjectRequest;
@@ -96,6 +97,25 @@ class ProjectController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project unarchived.')]);
 
         return back();
+    }
+
+    /**
+     * Move the project, with everything in it, to another of the user's
+     * workspaces, and follow it there.
+     */
+    public function move(Request $request, Team $current_team, Project $project, MoveProject $moveProject): RedirectResponse
+    {
+        $validated = $request->validate(['team' => ['required', 'string', 'exists:teams,slug']]);
+
+        $destination = Team::where('slug', $validated['team'])->firstOrFail();
+
+        Gate::authorize('move', [$project, $destination]);
+
+        $moveProject->handle($project, $destination);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project moved to :workspace.', ['workspace' => $destination->name])]);
+
+        return to_route('projects.show', [$destination, $project]);
     }
 
     /**
