@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Tasks\ClientRequestCreated;
+use App\Notifications\Tasks\CommentMentioned;
 use App\Notifications\Tasks\CommentPosted;
 use App\Notifications\Tasks\TaskAssigned;
 use Illuminate\Support\Collection;
@@ -16,8 +17,9 @@ use Illuminate\Support\Facades\Notification;
 /**
  * Decides who hears about activity on a task.
  *
- * A task's followers are its creator, its assignee and everyone who has
- * commented on it. Nobody is told about their own activity, clients never
+ * A task's followers are its creator, its assignee, everyone who has
+ * commented on it and everyone who has been @-mentioned in a comment.
+ * Nobody is told about their own activity, clients never
  * hear about internal notes, nobody is emailed about a project they can no
  * longer see, and people who turned task emails off in their settings hear
  * nothing at all.
@@ -52,15 +54,19 @@ class SendTaskNotifications
     }
 
     /**
-     * Tell the task's followers about a new comment or internal note.
+     * Tell the task's followers about a new comment or internal note. Anyone
+     * the comment @-mentions gets a "you were mentioned" email instead.
+     *
+     * @param  Collection<int, User>  $mentioned
      */
-    public function commentPosted(Comment $comment): void
+    public function commentPosted(Comment $comment, Collection $mentioned): void
     {
         $task = $comment->task;
         $team = $task->project->team;
         $author = $comment->user;
 
-        $recipients = $this->followers($task);
+        $recipients = $this->followers($task)
+            ->reject(fn (User $user) => $mentioned->contains(fn (User $mention) => $mention->is($user)));
 
         // Make sure a client's message always reaches someone who can act on it.
         if ($author && $author->isClientOf($team)) {
@@ -71,7 +77,22 @@ class SendTaskNotifications
             $recipients = $recipients->reject(fn (User $user) => $user->isClientOf($team));
         }
 
+        $this->commentMentioned($comment, $mentioned);
         $this->send($recipients, $task, $author, new CommentPosted($comment));
+    }
+
+    /**
+     * Tell people they've been @-mentioned in a comment.
+     *
+     * @param  Collection<int, User>  $mentioned
+     */
+    public function commentMentioned(Comment $comment, Collection $mentioned): void
+    {
+        if ($mentioned->isEmpty()) {
+            return;
+        }
+
+        $this->send($mentioned, $comment->task, $comment->user, new CommentMentioned($comment));
     }
 
     /**
@@ -81,6 +102,7 @@ class SendTaskNotifications
     {
         $ids = collect([$task->created_by, $task->assignee_id])
             ->merge($task->comments()->pluck('user_id'))
+            ->merge(User::whereHas('mentionedIn', fn ($query) => $query->where('task_id', $task->id))->pluck('id'))
             ->filter()
             ->unique();
 

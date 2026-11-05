@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -42,6 +43,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property-read Collection<int, Team> $ownedTeams
  * @property-read Collection<int, Membership> $teamMemberships
  * @property-read Collection<int, Team> $teams
+ * @property-read Collection<int, Comment> $mentionedIn
  */
 #[Fillable(['name', 'email', 'password', 'current_team_id', 'task_emails', 'reminder_emails', 'theme_color'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'avatar_path'])]
@@ -60,6 +62,16 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         'task_emails' => true,
         'reminder_emails' => true,
     ];
+
+    /**
+     * Get the comments that @-mention the user.
+     *
+     * @return BelongsToMany<Comment, $this>
+     */
+    public function mentionedIn(): BelongsToMany
+    {
+        return $this->belongsToMany(Comment::class, 'comment_mentions')->withTimestamps();
+    }
 
     /**
      * Emails are compared case-insensitively everywhere, so keep them

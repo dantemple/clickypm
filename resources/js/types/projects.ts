@@ -186,11 +186,17 @@ export type Activity = {
     created_at: string;
 };
 
+/** Someone a comment @-mentions. */
+export type Mention = Pick<Member, 'id' | 'name'>;
+
 export type Comment = {
     id: number;
+    /** Mentions are written as `@[Name](user:id)`; see lib/mentions.ts. */
     body: string;
     is_internal: boolean;
     user: { id: number; name: string } | null;
+    /** Set once the author changes the wording. */
+    edited_at: string | null;
     created_at: string;
 };
 

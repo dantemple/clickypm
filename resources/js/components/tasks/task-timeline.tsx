@@ -1,20 +1,23 @@
 import { usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Lock, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock, Pencil, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
+import { MentionTextarea } from '@/components/tasks/mention-textarea';
 import { MemberAvatar, StatusBadge } from '@/components/tasks/pickers';
 import { TagBadge } from '@/components/tasks/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { splitMentions, toBody, toDraft } from '@/lib/mentions';
 import {
     addComment,
     deleteComment,
     formatDateTime,
     formatDue,
+    updateComment,
 } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
-import type { Activity, Comment, Task } from '@/types';
+import type { Activity, Comment, Member, Mention, Task } from '@/types';
 
 type Entry =
     | { kind: 'comment'; at: string; comment: Comment }
@@ -333,12 +336,19 @@ function describeFieldChange(data: Activity['data']): ReactNode {
     );
 }
 
+/** Who a comment may mention: internal notes leave clients out, as they can't read them. */
+function mentionable(members: Member[], internal: boolean): Member[] {
+    return internal ? members.filter((member) => !member.isClient) : members;
+}
+
 function CommentItem({ task, comment }: { task: Task; comment: Comment }) {
     const { auth } = usePage().props;
     const { members } = useProject();
+    const [editing, setEditing] = useState(false);
     const author = comment.user?.name ?? 'Deleted user';
     const member = members.find((member) => member.id === comment.user?.id);
     const isClient = member?.isClient ?? false;
+    const mine = comment.user?.id === auth.user.id;
 
     return (
         <li
@@ -368,32 +378,161 @@ function CommentItem({ task, comment }: { task: Task; comment: Comment }) {
                     <span className="text-muted-foreground">
                         {formatDateTime(comment.created_at)}
                     </span>
-                    {comment.user?.id === auth.user.id && (
-                        <button
-                            type="button"
-                            title="Delete comment"
-                            className="ml-auto rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
-                            onClick={() =>
-                                confirm('Delete this comment?') &&
-                                deleteComment(task, comment)
-                            }
+                    {comment.edited_at && (
+                        <span
+                            className="text-muted-foreground"
+                            title={`Edited ${formatDateTime(comment.edited_at)}`}
                         >
-                            <Trash2 className="size-3.5" />
-                        </button>
+                            (edited)
+                        </span>
+                    )}
+                    {mine && !editing && (
+                        <span className="ml-auto flex items-center opacity-0 group-hover:opacity-100 has-[:focus-visible]:opacity-100">
+                            <button
+                                type="button"
+                                title="Edit comment"
+                                className="rounded p-1 text-muted-foreground hover:text-foreground"
+                                onClick={() => setEditing(true)}
+                            >
+                                <Pencil className="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                title="Delete comment"
+                                className="rounded p-1 text-muted-foreground hover:text-destructive"
+                                onClick={() =>
+                                    confirm('Delete this comment?') &&
+                                    deleteComment(task, comment)
+                                }
+                            >
+                                <Trash2 className="size-3.5" />
+                            </button>
+                        </span>
                     )}
                 </div>
-                <p className="mt-1 text-sm whitespace-pre-wrap">
-                    {comment.body}
-                </p>
+                {editing ? (
+                    <CommentEditor
+                        task={task}
+                        comment={comment}
+                        onClose={() => setEditing(false)}
+                    />
+                ) : (
+                    <p className="mt-1 text-sm whitespace-pre-wrap">
+                        <CommentBody body={comment.body} />
+                    </p>
+                )}
             </div>
         </li>
     );
 }
 
+/** The comment's text, with each @-mention picked out. */
+function CommentBody({ body }: { body: string }) {
+    const { auth } = usePage().props;
+
+    return splitMentions(body).map((segment, index) =>
+        segment.kind === 'text' ? (
+            <span key={index}>{segment.text}</span>
+        ) : (
+            <span
+                key={index}
+                className={cn(
+                    'rounded px-1 font-medium',
+                    segment.mention.id === auth.user.id
+                        ? 'bg-primary/20 text-primary'
+                        : 'bg-primary/10 text-primary',
+                )}
+            >
+                @{segment.mention.name}
+            </span>
+        ),
+    );
+}
+
+/** Rewording one of your own comments, in place. */
+function CommentEditor({
+    task,
+    comment,
+    onClose,
+}: {
+    task: Task;
+    comment: Comment;
+    onClose: () => void;
+}) {
+    const { members } = useProject();
+    const [draft, setDraft] = useState(() => toDraft(comment.body));
+    const [saving, setSaving] = useState(false);
+
+    const body = toBody(draft.text.trim(), draft.mentions);
+    const unchanged = body === comment.body;
+
+    const save = () => {
+        if (draft.text.trim() === '' || saving) {
+            return;
+        }
+
+        if (unchanged) {
+            onClose();
+
+            return;
+        }
+
+        setSaving(true);
+        updateComment(task, comment, body, {
+            onSuccess: onClose,
+            onFinish: () => setSaving(false),
+        });
+    };
+
+    return (
+        <form
+            className="mt-1 flex flex-col gap-2 rounded-md border bg-background p-2 focus-within:ring-2 focus-within:ring-ring"
+            onSubmit={(event) => {
+                event.preventDefault();
+                save();
+            }}
+        >
+            <MentionTextarea
+                value={draft.text}
+                mentions={draft.mentions}
+                onChange={(text, mentions) => setDraft({ text, mentions })}
+                members={mentionable(members, comment.is_internal)}
+                onSubmit={save}
+                onCancel={onClose}
+                placement="below"
+                rows={3}
+                autoFocus
+                aria-label="Edit comment"
+            />
+            <div className="flex items-center justify-end gap-2">
+                <span className="mr-auto text-xs text-muted-foreground">
+                    Esc to cancel
+                </span>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    type="submit"
+                    size="sm"
+                    disabled={draft.text.trim() === '' || saving}
+                >
+                    Save
+                </Button>
+            </div>
+        </form>
+    );
+}
+
 /** The comment box. Pinned to the bottom of the task panel. */
 export function CommentForm({ task }: { task: Task }) {
-    const { canEdit } = useProject();
+    const { canEdit, members } = useProject();
     const [body, setBody] = useState('');
+    const [mentions, setMentions] = useState<Mention[]>([]);
     const [internal, setInternal] = useState(false);
     const [sending, setSending] = useState(false);
 
@@ -405,10 +544,11 @@ export function CommentForm({ task }: { task: Task }) {
         setSending(true);
         addComment(
             task,
-            { body: body.trim(), is_internal: internal },
+            { body: toBody(body.trim(), mentions), is_internal: internal },
             {
                 onSuccess: () => {
                     setBody('');
+                    setMentions([]);
                     setInternal(false);
                 },
                 onFinish: () => setSending(false),
@@ -428,26 +568,22 @@ export function CommentForm({ task }: { task: Task }) {
                 submit();
             }}
         >
-            <textarea
+            <MentionTextarea
                 value={body}
+                mentions={mentions}
+                onChange={(text, mentions) => {
+                    setBody(text);
+                    setMentions(mentions);
+                }}
+                members={mentionable(members, internal)}
+                onSubmit={submit}
                 rows={2}
                 aria-label="Comment"
                 placeholder={
                     internal
-                        ? 'Internal note — only your team can see this'
-                        : 'Write a comment… (⌘/Ctrl + Enter to send)'
+                        ? 'Internal note — only your team can see this. Type @ to mention someone.'
+                        : 'Write a comment… Type @ to mention someone. (⌘/Ctrl + Enter to send)'
                 }
-                className="resize-y bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                onChange={(event) => setBody(event.target.value)}
-                onKeyDown={(event) => {
-                    if (
-                        event.key === 'Enter' &&
-                        (event.metaKey || event.ctrlKey)
-                    ) {
-                        event.preventDefault();
-                        submit();
-                    }
-                }}
             />
             <div className="flex items-center gap-3">
                 {canEdit && (

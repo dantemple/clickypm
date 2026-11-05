@@ -10,6 +10,7 @@ import {
 import {
     destroy as destroyCommentRoute,
     store as storeCommentRoute,
+    update as updateCommentRoute,
 } from '@/routes/projects/tasks/comments';
 import { restore as restoreTrashedTaskRoute } from '@/routes/trash/tasks';
 import {
@@ -149,6 +150,23 @@ export function addComment(
     router.post(
         storeCommentRoute.url({ project: task.project_id, task: task.id }),
         data,
+        { ...visitOptions, ...callbacks },
+    );
+}
+
+export function updateComment(
+    task: Task,
+    comment: Comment,
+    body: string,
+    callbacks: { onSuccess?: () => void; onFinish?: () => void } = {},
+): void {
+    router.patch(
+        updateCommentRoute.url({
+            project: task.project_id,
+            task: task.id,
+            comment: comment.id,
+        }),
+        { body },
         { ...visitOptions, ...callbacks },
     );
 }

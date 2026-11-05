@@ -70,6 +70,7 @@ Route::prefix('{current_team}')
         Route::delete('projects/{project}/dependencies/{dependency}', [DependencyController::class, 'destroy'])->name('projects.dependencies.destroy');
 
         Route::post('projects/{project}/tasks/{task}/comments', [CommentController::class, 'store'])->name('projects.tasks.comments.store');
+        Route::patch('projects/{project}/tasks/{task}/comments/{comment}', [CommentController::class, 'update'])->name('projects.tasks.comments.update');
         Route::delete('projects/{project}/tasks/{task}/comments/{comment}', [CommentController::class, 'destroy'])->name('projects.tasks.comments.destroy');
     });
 
