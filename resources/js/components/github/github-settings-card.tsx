@@ -94,15 +94,17 @@ export function GitHubSettingsCard({
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" asChild>
-                                <a
-                                    href={installation.manage_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    Manage on GitHub <ExternalLink />
-                                </a>
-                            </Button>
+                            {installation.account_login && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a
+                                        href={installation.manage_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Manage on GitHub <ExternalLink />
+                                    </a>
+                                </Button>
+                            )}
                             {canManage && (
                                 <Button
                                     variant="ghost"
@@ -117,11 +119,18 @@ export function GitHubSettingsCard({
                         </div>
                     </div>
 
-                    {installation.repositories.length === 0 ? (
+                    {!installation.account_login ? (
                         <p className="text-sm text-muted-foreground">
-                            No repositories yet. GitHub sends them a moment
-                            after the app is installed; if none appear, choose
-                            some under “Manage on GitHub”.
+                            Waiting for GitHub to tell us about this
+                            installation. That arrives by webhook a moment after
+                            installing; if it never does, check the app’s Recent
+                            Deliveries on GitHub for a failed delivery, and that
+                            a queue worker is running.
+                        </p>
+                    ) : installation.repositories.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            No repositories yet. Choose some under “Manage on
+                            GitHub” and they’ll appear here a moment later.
                         </p>
                     ) : (
                         <ul className="grid gap-1 text-sm sm:grid-cols-2">
