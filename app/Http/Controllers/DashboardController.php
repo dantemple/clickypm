@@ -48,6 +48,7 @@ class DashboardController extends Controller
             ->map(fn (Project $project) => [
                 'id' => $project->id,
                 'name' => $project->name,
+                'key' => $project->key,
                 'color' => $project->color,
                 'description' => $project->description,
                 'tasksCount' => $project->tasks_count,
@@ -56,7 +57,7 @@ class DashboardController extends Controller
             ]);
 
         $myTasks = Task::query()
-            ->with(['project:id,name,color', 'status:id,name,color,is_done', 'creator:id,name', 'tags'])
+            ->with(['project:id,name,key,color', 'status:id,name,color,is_done', 'creator:id,name', 'tags'])
             ->whereHas('project', fn ($query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
             ->where('assignee_id', $request->user()->id)
             ->whereNull('completed_at')
@@ -66,7 +67,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (Task $task) => [
                 ...$task->toTaskData(),
-                'project' => $task->project->only(['id', 'name', 'color']),
+                'project' => $task->project->only(['id', 'name', 'key', 'color']),
                 'status' => $task->status->only(['id', 'name', 'color', 'is_done']),
             ]);
 

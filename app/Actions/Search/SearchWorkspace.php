@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\TaskReference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -61,6 +62,7 @@ class SearchWorkspace
             ->map(fn (Project $project) => [
                 'id' => $project->id,
                 'name' => $project->name,
+                'key' => $project->key,
                 'color' => $project->color,
                 'description' => $project->description ? Str::limit($project->description, 120) : null,
                 'url' => route('projects.show', [$team, $project]),
@@ -78,18 +80,28 @@ class SearchWorkspace
         return Task::query()
             ->whereHas('project', fn (Builder $query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
             ->visibleTo($user, $isClient)
-            ->where(fn (Builder $query) => $this->whereMentions($query, ['tasks.title', 'tasks.description'], $term))
-            ->with(['project:id,name,color', 'status:id,name,color,is_done'])
+            ->where(function (Builder $query) use ($term) {
+                $this->whereMentions($query, ['tasks.title', 'tasks.description'], $term);
+
+                // "WEB-42" finds that task by its key as well.
+                if ($reference = TaskReference::parse($term)) {
+                    $query->orWhere(fn (Builder $query) => $query
+                        ->where('tasks.number', $reference->number)
+                        ->whereHas('project', fn (Builder $query) => $query->where('key', $reference->key)));
+                }
+            })
+            ->with(['project:id,name,key,color', 'status:id,name,color,is_done'])
             ->orderByRaw("CASE WHEN tasks.title {$this->operator()} ? ESCAPE '\\' THEN 0 ELSE 1 END", [$this->pattern($term)])
             ->latest('tasks.updated_at')
             ->limit($limit)
             ->get()
             ->map(fn (Task $task) => [
                 'id' => $task->id,
+                'number' => $task->number,
                 'title' => $task->title,
                 'needs_triage' => $task->needs_triage,
                 'completed_at' => $task->completed_at?->toIso8601String(),
-                'project' => $task->project->only(['id', 'name', 'color']),
+                'project' => $task->project->only(['id', 'name', 'key', 'color']),
                 'status' => $task->status->only(['id', 'name', 'color', 'is_done']),
                 'url' => route('projects.show', [$team, $task->project, 'task' => $task->id]),
             ])
@@ -109,7 +121,7 @@ class SearchWorkspace
                 ->whereHas('project', fn (Builder $query) => $query->where('team_id', $team->id)->active()->visibleTo($isClient))
                 ->visibleTo($user, $isClient))
             ->where(fn (Builder $query) => $this->whereMentions($query, ['comments.body'], $term))
-            ->with(['user:id,name', 'task:id,title,project_id', 'task.project:id,name,color'])
+            ->with(['user:id,name', 'task:id,title,project_id', 'task.project:id,name,key,color'])
             ->latest('comments.created_at')
             ->latest('comments.id')
             ->limit($limit)
@@ -120,7 +132,7 @@ class SearchWorkspace
                 'is_internal' => $comment->is_internal,
                 'user' => $comment->user?->only(['id', 'name']),
                 'task' => $comment->task->only(['id', 'title']),
-                'project' => $comment->task->project->only(['id', 'name', 'color']),
+                'project' => $comment->task->project->only(['id', 'name', 'key', 'color']),
                 'url' => route('projects.show', [$team, $comment->task->project, 'task' => $comment->task_id]),
             ])
             ->all();

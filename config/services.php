@@ -28,6 +28,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // The GitHub App that workspaces install for the GitHub module. See
+    // .env.example for how to create one.
+    'github' => [
+        'app_slug' => env('GITHUB_APP_SLUG'),
+        'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

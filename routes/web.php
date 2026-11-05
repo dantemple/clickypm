@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GitHubWebhookController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Projects\ArchivedProjectController;
@@ -10,12 +11,14 @@ use App\Http\Controllers\Projects\CommentController;
 use App\Http\Controllers\Projects\DependencyController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\Projects\ProjectCustomFieldController;
+use App\Http\Controllers\Projects\ProjectGitHubController;
 use App\Http\Controllers\Projects\ProjectStatusController;
 use App\Http\Controllers\Projects\ProjectTagController;
 use App\Http\Controllers\Projects\ProjectViewController;
 use App\Http\Controllers\Projects\SubtaskController;
 use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\Teams\TeamGitHubController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\TrashController;
@@ -51,6 +54,7 @@ Route::prefix('{current_team}')
         Route::put('projects/{project}/statuses', [ProjectStatusController::class, 'update'])->name('projects.statuses.update');
         Route::put('projects/{project}/custom-fields', [ProjectCustomFieldController::class, 'update'])->name('projects.fields.update');
         Route::put('projects/{project}/tags', [ProjectTagController::class, 'update'])->name('projects.tags.update');
+        Route::put('projects/{project}/github', [ProjectGitHubController::class, 'update'])->name('projects.github.update');
 
         Route::post('projects/{project}/views', [ProjectViewController::class, 'store'])->name('projects.views.store');
         Route::get('projects/{project}/views/{view}', [ProjectViewController::class, 'show'])->name('projects.views.show');
@@ -101,6 +105,12 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
+
+    // Where GitHub sends people back after installing the app.
+    Route::get('github/setup', [TeamGitHubController::class, 'setup'])->name('github.setup');
 });
+
+// Signed by the GitHub App's webhook secret rather than a session.
+Route::post('github/webhook', GitHubWebhookController::class)->name('github.webhook');
 
 require __DIR__.'/settings.php';

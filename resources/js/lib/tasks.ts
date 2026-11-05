@@ -325,12 +325,44 @@ export function formatDateTime(date: string): string {
     });
 }
 
-export function matchesSearch(task: Task, search: string): boolean {
+/** The task's key as people write it: WEB-42. */
+export function taskKey(
+    projectKey: string,
+    task: Pick<Task, 'number'>,
+): string {
+    return `${projectKey}-${task.number}`;
+}
+
+/** A git branch name that mentions the task: web-42-fix-login-button. */
+export function branchName(
+    projectKey: string,
+    task: Pick<Task, 'number' | 'title'>,
+): string {
+    const slug = task.title
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40)
+        .replace(/-+$/, '');
+
+    return [taskKey(projectKey, task).toLowerCase(), slug]
+        .filter(Boolean)
+        .join('-');
+}
+
+export function matchesSearch(
+    task: Task,
+    search: string,
+    projectKey?: string,
+): boolean {
     const term = search.trim().toLowerCase();
 
     return (
         term === '' ||
         task.title.toLowerCase().includes(term) ||
+        (projectKey !== undefined &&
+            taskKey(projectKey, task).toLowerCase().includes(term)) ||
         (task.description ?? '').toLowerCase().includes(term) ||
         task.tags.some((tag) => tag.name.toLowerCase().includes(term))
     );

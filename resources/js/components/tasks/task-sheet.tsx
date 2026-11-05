@@ -1,6 +1,8 @@
 import {
     ArrowDownToLine,
     Check,
+    GitBranch,
+    Hash,
     Inbox,
     Link2,
     MoreHorizontal,
@@ -27,6 +29,7 @@ import {
     useAttachmentUpload,
 } from '@/components/tasks/task-attachments';
 import { TaskDependencies } from '@/components/tasks/task-dependencies';
+import { TaskGitHubLinks } from '@/components/tasks/task-github-links';
 import { TaskSubtasks } from '@/components/tasks/task-subtasks';
 import { CommentForm, TaskTimeline } from '@/components/tasks/task-timeline';
 import { Button } from '@/components/ui/button';
@@ -49,8 +52,10 @@ import { useClipboard } from '@/hooks/use-clipboard';
 import { useSyncedDraft } from '@/hooks/use-synced-draft';
 import {
     acceptTask,
+    branchName,
     deleteTask,
     formatDateTime,
+    taskKey,
     updateTask,
 } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
@@ -59,6 +64,7 @@ import type {
     Activity,
     Attachment,
     Comment,
+    GitHubLink,
     Subtask,
     Task,
     TaskDependency,
@@ -70,6 +76,7 @@ export type TaskDetailsData = {
     subtasks: Subtask[];
     attachments: Attachment[];
     activity: Activity[];
+    githubLinks: GitHubLink[];
 };
 
 export function TaskSheet({
@@ -123,7 +130,9 @@ function TaskDetails({
     onClose: () => void;
 }) {
     const { project, canEdit, customFields } = useProject();
-    const ganttEnabled = !!usePage().props.currentTeam?.features?.gantt;
+    const features = usePage().props.currentTeam?.features;
+    const ganttEnabled = !!features?.gantt;
+    const githubEnabled = !!features?.github;
     const [, copy] = useClipboard();
     const upload = useAttachmentUpload(task);
     const [addingSubtask, setAddingSubtask] = useState(false);
@@ -169,6 +178,22 @@ function TaskDetails({
         }
     };
 
+    const copyKey = async () => {
+        if (await copy(taskKey(project.key, task))) {
+            toast.success('Key copied');
+        } else {
+            toast.error('Could not copy the key');
+        }
+    };
+
+    const copyBranchName = async () => {
+        if (await copy(branchName(project.key, task))) {
+            toast.success('Branch name copied');
+        } else {
+            toast.error('Could not copy the branch name');
+        }
+    };
+
     return (
         <>
             <SheetHeader className="gap-1 border-b pr-20">
@@ -178,6 +203,9 @@ function TaskDetails({
                         style={{ backgroundColor: project.color }}
                     />
                     {project.name}
+                    <span className="font-mono text-muted-foreground">
+                        {taskKey(project.key, task)}
+                    </span>
                 </SheetDescription>
                 <SheetTitle className={canEdit ? 'sr-only' : 'text-xl'}>
                     {task.title}
@@ -225,6 +253,14 @@ function TaskDetails({
                     <DropdownMenuItem onSelect={copyLink}>
                         <Link2 /> Copy link
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={copyKey}>
+                        <Hash /> Copy key
+                    </DropdownMenuItem>
+                    {githubEnabled && (
+                        <DropdownMenuItem onSelect={copyBranchName}>
+                            <GitBranch /> Copy branch name
+                        </DropdownMenuItem>
+                    )}
                     {canEdit && !task.needs_triage && (
                         <>
                             <DropdownMenuSeparator />
@@ -367,6 +403,10 @@ function TaskDetails({
                         dependencies={dependencies}
                         autoFocus={addingDependency}
                     />
+                )}
+
+                {githubEnabled && details.githubLinks.length > 0 && (
+                    <TaskGitHubLinks links={details.githubLinks} />
                 )}
 
                 {showSubtasks && (

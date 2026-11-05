@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -29,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, User> $members
  * @property-read Collection<int, Project> $projects
  * @property-read Collection<int, CustomField> $customFields
+ * @property-read GitHubInstallation|null $githubInstallation
  */
 #[Fillable(['name', 'slug', 'is_personal', 'features'])]
 class Team extends Model
@@ -117,6 +119,16 @@ class Team extends Model
     public function customFields(): HasMany
     {
         return $this->hasMany(CustomField::class)->orderBy('id');
+    }
+
+    /**
+     * The GitHub App installation connected to this workspace, if any.
+     *
+     * @return HasOne<GitHubInstallation, $this>
+     */
+    public function githubInstallation(): HasOne
+    {
+        return $this->hasOne(GitHubInstallation::class);
     }
 
     /**

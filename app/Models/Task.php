@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * @property int $id
  * @property int $project_id
+ * @property int $number
  * @property int $status_id
  * @property bool $needs_triage
  * @property string $title
@@ -52,8 +53,9 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, TaskDependency> $dependencies
  * @property-read Collection<int, TaskDependency> $dependents
  * @property-read Collection<int, Tag> $tags
+ * @property-read Collection<int, GitHubLink> $githubLinks
  */
-#[Fillable(['status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'start_date', 'is_milestone', 'progress', 'position', 'created_by'])]
+#[Fillable(['number', 'status_id', 'needs_triage', 'title', 'description', 'priority', 'assignee_id', 'due_date', 'start_date', 'is_milestone', 'progress', 'position', 'created_by'])]
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
@@ -75,6 +77,12 @@ class Task extends Model
      */
     protected static function booted(): void
     {
+        // Tasks are numbered within their project (WEB-1, WEB-2…). Trashed
+        // tasks keep their numbers, so count them too.
+        static::creating(function (Task $task) {
+            $task->number ??= (int) static::withTrashed()->where('project_id', $task->project_id)->max('number') + 1;
+        });
+
         // A task counts as complete while it sits in a "done" status.
         static::saving(function (Task $task) {
             if (! $task->isDirty('status_id')) {
@@ -103,12 +111,42 @@ class Task extends Model
     }
 
     /**
+     * Who to credit history entries to when nobody is signed in, such as
+     * the GitHub user whose pull request moved a task.
+     */
+    public static ?string $actor = null;
+
+    /**
+     * Run the callback with history entries credited to the given name.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public static function recordingActivityAs(?string $actor, callable $callback): mixed
+    {
+        $previous = static::$actor;
+        static::$actor = $actor;
+
+        try {
+            return $callback();
+        } finally {
+            static::$actor = $previous;
+        }
+    }
+
+    /**
      * Add a line to the task's history, credited to whoever is signed in.
      *
      * @param  array<string, mixed>  $data
      */
     public function recordActivity(string $type, array $data = []): void
     {
+        if (auth()->guest() && static::$actor !== null) {
+            $data = ['actor' => static::$actor, ...$data];
+        }
+
         $this->activities()->create([
             'user_id' => auth()->id(),
             'type' => $type,
@@ -257,6 +295,16 @@ class Task extends Model
     }
 
     /**
+     * Pull requests and commits on GitHub that mention the task, newest first.
+     *
+     * @return HasMany<GitHubLink, $this>
+     */
+    public function githubLinks(): HasMany
+    {
+        return $this->hasMany(GitHubLink::class)->latest('updated_at')->latest('id');
+    }
+
+    /**
      * Get the task's custom field values.
      *
      * @return HasMany<CustomFieldValue, $this>
@@ -337,6 +385,7 @@ class Task extends Model
         return [
             'id' => $this->id,
             'project_id' => $this->project_id,
+            'number' => $this->number,
             'status_id' => $this->status_id,
             'needs_triage' => $this->needs_triage,
             'title' => $this->title,

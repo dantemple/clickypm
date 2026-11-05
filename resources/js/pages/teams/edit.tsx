@@ -7,6 +7,7 @@ import {
     type WorkspaceField,
 } from '@/components/custom-fields/custom-fields-section';
 import DeleteTeamModal from '@/components/delete-team-modal';
+import { GitHubSettingsCard } from '@/components/github/github-settings-card';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import InviteMemberModal from '@/components/invite-member-modal';
@@ -36,6 +37,7 @@ import { update as updateMember } from '@/routes/teams/members';
 import type {
     CustomFieldTypeOption,
     FeatureOption,
+    GitHubConnection,
     RoleOption,
     Team,
     TeamInvitation,
@@ -52,6 +54,7 @@ type Props = {
     permissions: TeamPermissions;
     availableRoles: RoleOption[];
     availableFeatures: FeatureOption[];
+    github: GitHubConnection;
 };
 
 export default function TeamEdit({
@@ -63,6 +66,7 @@ export default function TeamEdit({
     permissions,
     availableRoles,
     availableFeatures,
+    github,
 }: Props) {
     const getInitials = useInitials();
 
@@ -375,6 +379,14 @@ export default function TeamEdit({
                         ))}
                     </ul>
                 </div>
+
+                {team.features?.github ? (
+                    <GitHubSettingsCard
+                        team={team}
+                        github={github}
+                        canManage={permissions.canUpdateTeam}
+                    />
+                ) : null}
 
                 <CustomFieldsSection
                     team={team}

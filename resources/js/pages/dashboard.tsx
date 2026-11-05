@@ -192,6 +192,9 @@ function AssignedTaskCard({
                 {task.due_date ? formatDue(task.due_date) : '—'}
             </span>
             <span className="flex min-w-0 items-center gap-2">
+                <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    {task.project.key}-{task.number}
+                </span>
                 <span className="truncate font-medium">{task.title}</span>
                 {task.priority && <PriorityFlag priority={task.priority} />}
             </span>

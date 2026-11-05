@@ -58,7 +58,7 @@ class HandleInertiaRequests extends Middleware
      * The current workspace's projects for the sidebar, with untriaged request
      * counts for the team (clients don't triage, so they don't get counts).
      *
-     * @return array<int, array{id: int, name: string, color: string, requests_count: int}>
+     * @return array<int, array{id: int, name: string, key: string, color: string, requests_count: int}>
      */
     protected function sidebarProjects(?User $user): array
     {
@@ -74,10 +74,11 @@ class HandleInertiaRequests extends Middleware
             ->active()
             ->visibleTo($isClient)
             ->unless($isClient, fn ($query) => $query->withCount(['tasks as requests_count' => fn ($query) => $query->where('needs_triage', true)]))
-            ->get(['id', 'name', 'color'])
+            ->get(['id', 'name', 'key', 'color'])
             ->map(fn (Project $project) => [
                 'id' => $project->id,
                 'name' => $project->name,
+                'key' => $project->key,
                 'color' => $project->color,
                 'requests_count' => $project->requests_count ?? 0,
             ])

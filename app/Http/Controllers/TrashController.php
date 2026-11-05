@@ -43,7 +43,7 @@ class TrashController extends Controller
             // Tasks in a trashed project come back with the project, so they aren't listed separately.
             'trashedTasks' => Task::onlyTrashed()
                 ->whereHas('project', fn ($query) => $query->whereBelongsTo($current_team))
-                ->with(['project:id,name,color', 'deleter:id,name'])
+                ->with(['project:id,name,key,color', 'deleter:id,name'])
                 ->latest('deleted_at')
                 ->limit(500)
                 ->get()
@@ -51,7 +51,7 @@ class TrashController extends Controller
                     'id' => $task->id,
                     'title' => $task->title,
                     'isRequest' => $task->needs_triage,
-                    'project' => $task->project->only(['id', 'name', 'color']),
+                    'project' => $task->project->only(['id', 'name', 'key', 'color']),
                     'deletedBy' => $task->deleter?->name,
                     'deletedAt' => $task->deleted_at?->toIso8601String(),
                     'purgeAt' => $purgeDate($task),

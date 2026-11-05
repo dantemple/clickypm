@@ -34,7 +34,13 @@ const PROJECT_PROPS = [
 const TASK_LEVEL_PROPS = ['tasks', 'requests', 'dependencies', 'tags'];
 
 /** Props of the open task's panel. */
-const TASK_PROPS = ['comments', 'subtasks', 'attachments', 'activity'];
+const TASK_PROPS = [
+    'comments',
+    'subtasks',
+    'attachments',
+    'activity',
+    'githubLinks',
+];
 
 /** Props the sidebar's notification bell shows. */
 const NOTIFICATION_PROPS = ['unreadNotificationsCount'];

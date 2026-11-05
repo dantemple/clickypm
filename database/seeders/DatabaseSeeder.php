@@ -52,7 +52,8 @@ class DatabaseSeeder extends Seeder
 
             Task::factory(fake()->numberBetween(10, 18))
                 ->for($project)
-                ->sequence(fn ($sequence) => ['position' => $sequence->index + 1])
+                // Numbered here because the seeder runs without model events.
+                ->sequence(fn ($sequence) => ['position' => $sequence->index + 1, 'number' => $sequence->index + 1])
                 ->state(function () use ($statuses, $members) {
                     $status = $statuses->random();
 
@@ -78,6 +79,7 @@ class DatabaseSeeder extends Seeder
 
             foreach (['Add a cookie banner to the site', 'Logo looks blurry on retina screens'] as $title) {
                 $project->tasks()->create([
+                    'number' => (int) $project->tasks()->max('number') + 1,
                     'status_id' => $project->defaultStatus()->id,
                     'needs_triage' => true,
                     'title' => $title,

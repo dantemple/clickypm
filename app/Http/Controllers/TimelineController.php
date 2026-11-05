@@ -35,7 +35,7 @@ class TimelineController extends Controller
             ->get();
 
         return Inertia::render('timeline', [
-            'projects' => $projects->map(fn (Project $project) => $project->only(['id', 'name', 'color'])),
+            'projects' => $projects->map(fn (Project $project) => $project->only(['id', 'name', 'key', 'color'])),
             'tasks' => $tasks->map->toTaskData(),
             'dependencies' => TaskDependency::query()
                 ->whereIn('successor_id', $tasks->modelKeys())
