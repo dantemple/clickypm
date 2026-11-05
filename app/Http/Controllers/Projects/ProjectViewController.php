@@ -76,12 +76,23 @@ class ProjectViewController extends Controller
             'project' => [
                 'id' => $project->id,
                 'name' => $project->name,
+                'key' => $project->key,
                 'color' => $project->color,
                 'description' => $project->description,
                 'hidden_from_clients' => $project->hidden_from_clients,
                 'archived_at' => $project->archived_at?->toIso8601String(),
                 'canDelete' => $user->can('delete', $project),
             ],
+            // The GitHub module's settings for this project, for its dialog.
+            'github' => fn () => $current_team->hasFeature(TeamFeature::GitHub) && $user->can('update', $project)
+                ? [
+                    'connected' => $current_team->githubInstallation !== null,
+                    'repositories' => $current_team->githubInstallation?->repositories->map->toRepositoryData()->values() ?? [],
+                    'repository_ids' => $project->githubRepositories()->pluck('github_repositories.id'),
+                    'opened_status_id' => $project->github_opened_status_id,
+                    'merged_status_id' => $project->github_merged_status_id,
+                ]
+                : null,
             'canEdit' => $user->can('update', $project),
             'views' => $project->views->filter(fn (ProjectView $view) => $this->available($view, $current_team))->values()->map->toViewData(),
             'view' => $view->toViewData(),
@@ -116,6 +127,9 @@ class ProjectViewController extends Controller
                     ->map->toAttachmentData()
                 : [],
             'maxUploadMegabytes' => Attachment::MAX_KILOBYTES / 1024,
+            'githubLinks' => fn () => $openTask && $current_team->hasFeature(TeamFeature::GitHub)
+                ? $openTask->githubLinks->map->toLinkData()->values()
+                : [],
             'activity' => fn () => $openTask
                 ? $openTask->activities()->with('user:id,name')->get()
                     ->when($isClient, fn ($activities) => $activities->reject(

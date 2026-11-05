@@ -9,6 +9,7 @@ namespace App\Enums;
 enum TeamFeature: string
 {
     case Gantt = 'gantt';
+    case GitHub = 'github';
 
     /**
      * Get the display label for the feature.
@@ -17,6 +18,7 @@ enum TeamFeature: string
     {
         return match ($this) {
             self::Gantt => 'Gantt charts',
+            self::GitHub => 'GitHub',
         };
     }
 
@@ -27,6 +29,7 @@ enum TeamFeature: string
     {
         return match ($this) {
             self::Gantt => 'A Gantt view for projects, with start dates and milestones on tasks.',
+            self::GitHub => 'Pull requests and commits that mention a task key (WEB-42) show up on the task, and can move it along as they open and merge.',
         };
     }
 

@@ -170,7 +170,8 @@ function ActivityItem({ activity }: { activity: Activity }) {
             <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
             <span className="min-w-0 flex-1">
                 <span className="font-medium text-foreground">
-                    {activity.user?.name ?? 'Someone'}
+                    {activity.user?.name ??
+                        text(activity.data.actor, 'Someone')}
                 </span>{' '}
                 {describeActivity(activity)}
                 <span className="whitespace-nowrap">
@@ -292,9 +293,50 @@ function describeActivity({ type, data }: Activity): ReactNode {
             return <>removed the tag {quote(data.name)}</>;
         case 'custom_field':
             return describeFieldChange(data);
+        case 'github_pr_linked':
+            return <>linked pull request {pullRequest(data)}</>;
+        case 'github_pr_merged':
+            return <>merged pull request {pullRequest(data)}</>;
+        case 'github_pr_closed':
+            return <>closed pull request {pullRequest(data)} without merging</>;
+        case 'github_pr_reopened':
+            return <>reopened pull request {pullRequest(data)}</>;
+        case 'github_commit':
+            return (
+                <>
+                    mentioned this in commit{' '}
+                    <a
+                        href={text(data.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-foreground hover:underline"
+                    >
+                        {text(data.sha)}
+                    </a>{' '}
+                    in {text(data.repository)}
+                </>
+            );
         default:
             return 'updated this task';
     }
+}
+
+/** A link to the pull request a GitHub history entry is about. */
+function pullRequest(data: Activity['data']): ReactNode {
+    return (
+        <>
+            <a
+                href={text(data.url)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground hover:underline"
+            >
+                #{typeof data.number === 'number' ? data.number : '?'}{' '}
+                {quote(data.title)}
+            </a>{' '}
+            in {text(data.repository)}
+        </>
+    );
 }
 
 function describeFieldChange(data: Activity['data']): ReactNode {

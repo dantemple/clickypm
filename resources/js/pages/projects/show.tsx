@@ -6,6 +6,7 @@ import {
     Eye,
     EyeOff,
     FolderInput,
+    GitBranch,
     Layers,
     ListChecks,
     MoreHorizontal,
@@ -28,6 +29,7 @@ import { StatusesDialog } from '@/components/projects/statuses-dialog';
 import { TagsDialog } from '@/components/projects/tags-dialog';
 import { ViewTabs } from '@/components/projects/view-tabs';
 import { RequestsInbox } from '@/components/tasks/requests-inbox';
+import { GitHubDialog } from '@/components/projects/github-dialog';
 import { TaskSheet } from '@/components/tasks/task-sheet';
 import { Button } from '@/components/ui/button';
 import {
@@ -76,16 +78,18 @@ import type {
     Comment,
     CustomField,
     GanttZoom,
+    GitHubLink,
     GroupBy,
-    TaskDependency,
     Member,
     PriorityOption,
     Project,
+    ProjectGitHubSettings,
     ProjectView,
     Status,
     Subtask,
     Tag,
     Task,
+    TaskDependency,
     ViewSettings,
 } from '@/types';
 
@@ -102,6 +106,9 @@ type Props = {
     tasks: Task[];
     requests: Task[];
     dependencies: TaskDependency[];
+    /** The GitHub module's settings; null when it's off or you can't edit. */
+    github: ProjectGitHubSettings | null;
+    githubLinks: GitHubLink[];
     openTaskId: number | null;
     comments: Comment[];
     subtasks: Subtask[];
@@ -154,6 +161,8 @@ export default function ProjectShow({
     members,
     priorities,
     maxUploadMegabytes,
+    github,
+    githubLinks,
 }: Props) {
     const [search, setSearch] = useState('');
     const [selectedTaskId, setSelectedTaskId] = useState(openTaskId);
@@ -163,6 +172,7 @@ export default function ProjectShow({
     const [statusesOpen, setStatusesOpen] = useState(false);
     const [tagsOpen, setTagsOpen] = useState(false);
     const [fieldsOpen, setFieldsOpen] = useState(false);
+    const [githubOpen, setGithubOpen] = useState(false);
     const [moveOpen, setMoveOpen] = useState(false);
     const canMove = project.canDelete && useMoveDestinations().length > 0;
     const [newTaskOpen, setNewTaskOpen] = useState(false);
@@ -223,7 +233,7 @@ export default function ProjectShow({
     const visibleTasks = tasks.filter(
         (task) =>
             (settings.show_closed || !doneStatusIds.has(task.status_id)) &&
-            matchesSearch(task, search),
+            matchesSearch(task, search, project.key),
     );
     const openTask =
         [...tasks, ...requests].find((task) => task.id === selectedTaskId) ??
@@ -249,6 +259,7 @@ export default function ProjectShow({
                     'subtasks',
                     'attachments',
                     'activity',
+                    'githubLinks',
                 ],
                 preserveState: true,
                 preserveScroll: true,
@@ -326,6 +337,13 @@ export default function ProjectShow({
                                 >
                                     <SlidersHorizontal /> Custom fields
                                 </DropdownMenuItem>
+                                {github && (
+                                    <DropdownMenuItem
+                                        onSelect={() => setGithubOpen(true)}
+                                    >
+                                        <GitBranch /> GitHub
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 {project.archived_at ? (
                                     <DropdownMenuItem onSelect={unarchive}>
@@ -561,12 +579,19 @@ export default function ProjectShow({
                 dependencies={dependencies}
                 details={
                     openTaskId === selectedTaskId
-                        ? { comments, subtasks, attachments, activity }
+                        ? {
+                              comments,
+                              subtasks,
+                              attachments,
+                              activity,
+                              githubLinks,
+                          }
                         : {
                               comments: [],
                               subtasks: [],
                               attachments: [],
                               activity: [],
+                              githubLinks: [],
                           }
                 }
                 onClose={() => selectTask(null)}
@@ -616,6 +641,16 @@ export default function ProjectShow({
                         open={fieldsOpen}
                         onOpenChange={setFieldsOpen}
                     />
+
+                    {github && (
+                        <GitHubDialog
+                            project={project}
+                            statuses={statuses}
+                            github={github}
+                            open={githubOpen}
+                            onOpenChange={setGithubOpen}
+                        />
+                    )}
                 </>
             )}
         </ProjectContext.Provider>

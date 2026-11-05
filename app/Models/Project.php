@@ -21,9 +21,12 @@ use Illuminate\Support\Facades\Storage;
  * @property int $id
  * @property int $team_id
  * @property string $name
+ * @property string $key
  * @property string $color
  * @property string|null $description
  * @property bool $hidden_from_clients
+ * @property int|null $github_opened_status_id
+ * @property int|null $github_merged_status_id
  * @property int $position
  * @property int|null $created_by
  * @property CarbonImmutable|null $archived_at
@@ -39,11 +42,12 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, CustomField> $customFields
  * @property-read Collection<int, TaskDependency> $dependencies
  * @property-read Collection<int, Tag> $tags
+ * @property-read Collection<int, GitHubRepository> $githubRepositories
  * @property-read int|null $tasks_count
  * @property-read int|null $done_tasks_count
  * @property-read int|null $requests_count
  */
-#[Fillable(['name', 'color', 'description', 'hidden_from_clients', 'position', 'created_by'])]
+#[Fillable(['name', 'key', 'color', 'description', 'hidden_from_clients', 'position', 'created_by'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -54,10 +58,56 @@ class Project extends Model
      */
     protected static function booted(): void
     {
+        // Every project gets a short key, like WEB, so its tasks can be
+        // referred to as WEB-42 from outside the app.
+        static::creating(function (Project $project) {
+            $project->key = static::uniqueKey($project->key ?: static::suggestKey($project->name), $project->team_id);
+        });
+
         // Trashed projects keep everything; once deleted for good, tasks and
         // attachment rows cascade away in the database and the files go here.
         static::forceDeleted(fn (Project $project) => Storage::disk(config('filesystems.attachments'))
             ->deleteDirectory(Attachment::directoryFor($project->id)));
+    }
+
+    /**
+     * A key made from the name: the initials of up to four words (Website
+     * Relaunch becomes WR), or the first letters of a one-word name.
+     */
+    public static function suggestKey(string $name): string
+    {
+        $words = preg_split('/[^a-z0-9]+/i', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $initials = strtoupper(implode('', array_map(fn (string $word) => $word[0], array_slice($words, 0, 4))));
+
+        if (strlen($initials) < 2) {
+            $initials = strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $name) ?? '', 0, 3));
+        }
+
+        $key = ltrim($initials, '0123456789');
+
+        return strlen($key) >= 2 ? $key : 'PRJ';
+    }
+
+    /**
+     * The key, or the first of KEY2, KEY3… that no other project in the
+     * workspace already uses.
+     */
+    public static function uniqueKey(string $key, int $teamId, ?int $ignoreId = null): string
+    {
+        $taken = static::withTrashed()
+            ->where('team_id', $teamId)
+            ->when($ignoreId, fn (Builder $query) => $query->whereKeyNot($ignoreId))
+            ->where('key', 'like', $key.'%')
+            ->pluck('key')
+            ->all();
+
+        $candidate = $key;
+
+        for ($suffix = 2; in_array($candidate, $taken, true); $suffix++) {
+            $candidate = $key.$suffix;
+        }
+
+        return $candidate;
     }
 
     /**
@@ -118,6 +168,16 @@ class Project extends Model
     public function dependencies(): HasManyThrough
     {
         return $this->hasManyThrough(TaskDependency::class, Task::class, 'project_id', 'successor_id');
+    }
+
+    /**
+     * The GitHub repositories whose pull requests move this project's tasks.
+     *
+     * @return BelongsToMany<GitHubRepository, $this>
+     */
+    public function githubRepositories(): BelongsToMany
+    {
+        return $this->belongsToMany(GitHubRepository::class, 'github_repository_project', 'project_id', 'github_repository_id')->withTimestamps()->orderBy('full_name');
     }
 
     /**

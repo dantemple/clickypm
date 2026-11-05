@@ -35,6 +35,8 @@ class MoveProject
 
             $project->forceFill([
                 'team_id' => $destination->id,
+                // Keys are unique per workspace; take the next free one if needed.
+                'key' => Project::uniqueKey($project->key, $destination->id),
                 'position' => (int) $destination->projects()->max('position') + 1,
             ])->save();
 

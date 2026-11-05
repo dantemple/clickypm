@@ -13,6 +13,7 @@ use App\Models\CustomField;
 use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\GitHubApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,13 @@ class TeamController extends Controller
                 'features' => (object) ($team->features ?? []),
             ],
             'availableFeatures' => TeamFeature::options(),
+            // The GitHub module's connection, for its card in the settings.
+            'github' => fn () => [
+                'configured' => GitHubApp::configured(),
+                'installation' => $team->hasFeature(TeamFeature::GitHub)
+                    ? $team->githubInstallation?->load('repositories')->toInstallationData()
+                    : null,
+            ],
             'members' => $team->members()->get()->map(function (User $member) {
                 /** @var Membership $membership */
                 $membership = $member->getRelation('pivot');

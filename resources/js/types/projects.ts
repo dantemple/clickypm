@@ -46,6 +46,8 @@ export type ProjectView = {
 export type ProjectSummary = {
     id: number;
     name: string;
+    /** Short code its tasks are keyed by, e.g. WEB in WEB-42. */
+    key: string;
     color: string;
 };
 
@@ -130,6 +132,8 @@ export type PriorityOption = {
 export type Task = {
     id: number;
     project_id: number;
+    /** Its number within the project: the 42 in WEB-42. */
+    number: number;
     status_id: number;
     needs_triage: boolean;
     title: string;

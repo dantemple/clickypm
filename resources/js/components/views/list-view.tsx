@@ -28,6 +28,7 @@ import {
     StatusToggle,
 } from '@/components/tasks/pickers';
 import { statusDropId, useTaskDrag } from '@/hooks/use-task-drag';
+import { taskKey } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
 import type { GroupBy, Task, TaskInput, ViewSettings } from '@/types';
 
@@ -250,7 +251,7 @@ function ListRow({
     style?: CSSProperties;
     className?: string;
 }) {
-    const { openTask } = useProject();
+    const { project, openTask } = useProject();
 
     return (
         <div
@@ -274,6 +275,9 @@ function ListRow({
             {handle}
             <div className="flex min-w-0 items-center gap-2">
                 <StatusToggle task={task} />
+                <span className="hidden shrink-0 font-mono text-xs text-muted-foreground sm:inline">
+                    {taskKey(project.key, task)}
+                </span>
                 <span
                     className={cn(
                         'truncate',

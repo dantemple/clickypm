@@ -48,6 +48,7 @@ function SettingsForm({
 }) {
     const form = useForm({
         name: project.name,
+        key: project.key,
         color: project.color,
         description: project.description ?? '',
         hidden_from_clients: project.hidden_from_clients,
@@ -92,6 +93,26 @@ function SettingsForm({
                     required
                 />
                 <InputError message={form.errors.name} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="settings-key">Key</Label>
+                <Input
+                    id="settings-key"
+                    value={form.data.key}
+                    className="w-32 font-mono uppercase"
+                    maxLength={10}
+                    onChange={(event) =>
+                        form.setData('key', event.target.value.toUpperCase())
+                    }
+                    required
+                />
+                <p className="text-xs text-muted-foreground">
+                    Tasks are referred to as {form.data.key || 'KEY'}-1,{' '}
+                    {form.data.key || 'KEY'}-2… in links, branch names and
+                    commits.
+                </p>
+                <InputError message={form.errors.key} />
             </div>
 
             <div className="grid gap-2">

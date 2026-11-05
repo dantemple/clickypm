@@ -23,10 +23,11 @@ type ProjectResult = {
 
 type TaskResult = {
     id: number;
+    number: number;
     title: string;
     needs_triage: boolean;
     completed_at: string | null;
-    project: { id: number; name: string; color: string };
+    project: { id: number; name: string; key: string; color: string };
     status: { id: number; name: string; color: string; is_done: boolean };
     url: string;
 };
@@ -236,6 +237,9 @@ function CommandPalette({
                                         onSelect={() => go(task.url)}
                                     >
                                         <Dot color={task.status.color} />
+                                        <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                                            {task.project.key}-{task.number}
+                                        </span>
                                         <span
                                             className={cn(
                                                 'truncate',

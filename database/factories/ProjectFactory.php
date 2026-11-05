@@ -24,6 +24,8 @@ class ProjectFactory extends Factory
         return [
             'team_id' => Team::factory(),
             'name' => Str::title(fake()->word().' '.fake()->word()),
+            // Set here as well as in the model, for seeders that run without events.
+            'key' => fn (array $attributes) => Project::uniqueKey(Project::suggestKey($attributes['name']), $attributes['team_id']),
             'color' => fake()->hexColor(),
             'description' => fake()->optional()->sentence(),
         ];
