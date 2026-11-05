@@ -47,7 +47,7 @@ class CommentPosted extends Notification implements ShouldQueue
             ]))
             ->greeting($this->comment->is_internal ? __('New internal note') : __('New comment'))
             ->line(__(':name wrote on **:title**:', ['name' => e($author), 'title' => e($task->title)]))
-            ->line('> '.str_replace("\n", "\n> ", e(Str::limit($this->comment->body, 1000))))
+            ->line('> '.str_replace("\n", "\n> ", e(Str::limit($this->comment->plainBody(), 1000))))
             ->when($this->comment->is_internal, fn (MailMessage $message) => $message
                 ->line(__('This is an internal note. Clients can’t see it.')))
             ->action(__('Reply'), $task->url());

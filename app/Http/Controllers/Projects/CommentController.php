@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Actions\Tasks\SendTaskNotifications;
+use App\Actions\Tasks\SyncCommentMentions;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Project;
@@ -17,7 +18,7 @@ class CommentController extends Controller
     /**
      * Add a comment, or an internal note when the author is on the team.
      */
-    public function store(Request $request, Team $current_team, Project $project, Task $task, SendTaskNotifications $notifications): RedirectResponse
+    public function store(Request $request, Team $current_team, Project $project, Task $task, SyncCommentMentions $mentions, SendTaskNotifications $notifications): RedirectResponse
     {
         Gate::authorize('view', $task);
 
@@ -32,7 +33,32 @@ class CommentController extends Controller
             'is_internal' => ($validated['is_internal'] ?? false) && ! $request->user()->isClientOf($current_team),
         ]);
 
-        $notifications->commentPosted($comment);
+        $mentioned = $mentions->handle($comment);
+
+        $notifications->commentPosted($comment, $mentioned);
+
+        return back();
+    }
+
+    /**
+     * Change the wording of one of your own comments. Anyone the edit newly
+     * mentions hears about it; everyone else already has.
+     */
+    public function update(Request $request, Team $current_team, Project $project, Task $task, Comment $comment, SyncCommentMentions $mentions, SendTaskNotifications $notifications): RedirectResponse
+    {
+        Gate::authorize('view', $task);
+
+        abort_unless($comment->user_id === $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'body' => ['required', 'string', 'max:10000'],
+        ]);
+
+        if ($validated['body'] !== $comment->body) {
+            $comment->update(['body' => $validated['body'], 'edited_at' => now()]);
+
+            $notifications->commentMentioned($comment, $mentions->handle($comment));
+        }
 
         return back();
     }
