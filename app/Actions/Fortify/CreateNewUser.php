@@ -58,7 +58,9 @@ class CreateNewUser implements CreatesNewUsers
      * workspace. The invitation itself is only claimed after verification, so
      * this just decides whether an account can exist at all.
      *
-     * @param  array<string, string>  $input
+     * Raw request input can be anything, so the email is checked before use.
+     *
+     * @param  array<string, mixed>  $input
      */
     private function requireInvitation(ValidatorInstance $validator, array $input): void
     {
