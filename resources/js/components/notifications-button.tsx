@@ -128,7 +128,7 @@ export function NotificationsButton() {
                     }
                 >
                     <span className="relative flex shrink-0">
-                        <Bell />
+                        <Bell className="size-4 shrink-0" />
                         {unread > 0 && (
                             <span
                                 aria-hidden
