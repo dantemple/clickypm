@@ -119,7 +119,8 @@ class CommentMentionTest extends TestCase
 
         $this->comment($this->owner, $this->mention($this->member));
 
-        Notification::assertNotSentTo($this->member, CommentMentioned::class);
+        // They still get the in-app entry, just no email.
+        Notification::assertSentTo($this->member, CommentMentioned::class, fn (CommentMentioned $notification, array $channels) => ! in_array('mail', $channels, true));
     }
 
     public function test_mentioned_people_follow_the_task_from_then_on()

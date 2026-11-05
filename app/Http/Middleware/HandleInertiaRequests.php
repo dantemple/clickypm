@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
             'projects' => fn () => $this->sidebarProjects($user),
             'archivedProjectsCount' => fn () => $this->archivedProjectsCount($user),
+            'unreadNotificationsCount' => fn () => $user?->unreadNotifications()->count() ?? 0,
         ];
     }
 

@@ -157,7 +157,7 @@ class TaskNotificationTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_people_who_turned_task_emails_off_hear_nothing()
+    public function test_people_who_turned_task_emails_off_are_not_emailed()
     {
         $this->member->update(['task_emails' => false]);
         $task = Task::factory()->for($this->project)->create(['assignee_id' => null]);
@@ -165,7 +165,10 @@ class TaskNotificationTest extends TestCase
         $this->assign($this->owner, $task, $this->member);
         $this->comment($this->owner, $task, 'Any thoughts?');
 
-        Notification::assertNothingSent();
+        // They still get the in-app entries, just no email.
+        $noMail = fn (object $notification, array $channels) => ! in_array('mail', $channels, true);
+        Notification::assertSentTo($this->member, TaskAssigned::class, $noMail);
+        Notification::assertSentTo($this->member, CommentPosted::class, $noMail);
     }
 
     public function test_assignment_emails_render()
