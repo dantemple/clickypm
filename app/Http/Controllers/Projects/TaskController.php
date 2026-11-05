@@ -16,7 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator as ValidatorContract;
 use Inertia\Inertia;
 
 class TaskController extends Controller
@@ -96,11 +98,26 @@ class TaskController extends Controller
     {
         Gate::authorize('update', $project);
 
-        $validated = $request->validate([
+        $validated = Validator::make($request->all(), [
             'status_id' => ['required', 'integer', Rule::exists('statuses', 'id')->where('project_id', $project->id)],
             'order' => ['required', 'array', 'max:1000', Rule::contains([$task->id])],
-            'order.*' => ['integer', 'distinct', Rule::exists('tasks', 'id')->where('project_id', $project->id)->whereNull('deleted_at')],
-        ]);
+            'order.*' => ['integer', 'distinct'],
+        ])->after(function (ValidatorContract $validator) use ($project) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            // Every id must be one of the project's live tasks. One query for
+            // the whole list, rather than an "exists" rule's query per id.
+            $order = $validator->getData()['order'];
+            $known = $project->tasks()->whereKey($order)->pluck('id')->flip();
+
+            foreach ($order as $index => $id) {
+                if (! $known->has((int) $id)) {
+                    $validator->errors()->add("order.{$index}", __('validation.exists', ['attribute' => "order.{$index}"]));
+                }
+            }
+        })->validate();
 
         DB::transaction(function () use ($project, $task, $validated) {
             $tasks = $project->tasks()->whereKey($validated['order'])->lockForUpdate()->get()->keyBy('id');

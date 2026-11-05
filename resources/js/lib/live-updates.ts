@@ -26,6 +26,13 @@ const PROJECT_PROPS = [
     'members',
 ];
 
+/**
+ * The props that can change when only tasks were touched: the lists, the
+ * links between them, and the tag counts. The project's own details, views,
+ * statuses, members and fields only change with a project-level message.
+ */
+const TASK_LEVEL_PROPS = ['tasks', 'requests', 'dependencies', 'tags'];
+
 /** Props of the open task's panel. */
 const TASK_PROPS = ['comments', 'subtasks', 'attachments', 'activity'];
 
@@ -71,15 +78,14 @@ export function useProjectLiveUpdates(
         `projects.${projectId}`,
         '.project.changed',
         ({ taskIds }) => {
+            // An empty list means the project itself changed.
+            const props =
+                taskIds.length === 0 ? PROJECT_PROPS : TASK_LEVEL_PROPS;
             const touchesOpenTask =
                 openTaskId !== null &&
                 (taskIds.length === 0 || taskIds.includes(openTaskId));
 
-            reloadSoon(
-                touchesOpenTask
-                    ? [...PROJECT_PROPS, ...TASK_PROPS]
-                    : PROJECT_PROPS,
-            );
+            reloadSoon(touchesOpenTask ? [...props, ...TASK_PROPS] : props);
         },
         [openTaskId],
     );
