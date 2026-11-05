@@ -8,6 +8,7 @@ use App\Enums\TeamPermission;
 use App\Enums\TeamRole;
 use App\Models\Membership;
 use App\Models\Team;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,17 @@ use Illuminate\Support\Facades\URL;
 
 trait HasTeams
 {
+    /**
+     * Memberships already looked up during this request, keyed by user id
+     * and then by team id. Policies, the sidebar and the controllers all ask
+     * about the same workspace many times per request; this answers them
+     * from one query. Flushed when the request or queued job finishes, and
+     * whenever a membership is saved or deleted.
+     *
+     * @var array<int, EloquentCollection<int, Membership>>
+     */
+    protected static array $membershipCache = [];
+
     /**
      * Get all of the teams the user belongs to.
      *
@@ -125,7 +137,35 @@ trait HasTeams
      */
     public function belongsToTeam(Team $team): bool
     {
-        return $this->teams()->where('teams.id', $team->id)->exists();
+        return $this->memberships()->has($team->id);
+    }
+
+    /**
+     * The user's memberships keyed by team id, from the cache where possible.
+     *
+     * @return EloquentCollection<int, Membership>
+     */
+    protected function memberships(): EloquentCollection
+    {
+        if (! $this->exists) {
+            return new EloquentCollection;
+        }
+
+        return static::$membershipCache[$this->id] ??= $this->teamMemberships()->get()->keyBy('team_id');
+    }
+
+    /**
+     * Forget the cached memberships of one user, or of everyone.
+     */
+    public static function flushMembershipCache(?int $userId = null): void
+    {
+        if ($userId === null) {
+            static::$membershipCache = [];
+
+            return;
+        }
+
+        unset(static::$membershipCache[$userId]);
     }
 
     /**
@@ -149,10 +189,7 @@ trait HasTeams
      */
     public function teamRole(Team $team): ?TeamRole
     {
-        return $this->teamMemberships()
-            ->where('team_id', $team->id)
-            ->first()
-            ?->role;
+        return $this->memberships()->get($team->id)?->role;
     }
 
     /**

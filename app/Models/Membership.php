@@ -29,6 +29,17 @@ class Membership extends Pivot
     protected $table = 'team_members';
 
     /**
+     * Bootstrap the model and its traits.
+     */
+    protected static function booted(): void
+    {
+        $forget = fn (Membership $membership) => User::flushMembershipCache($membership->user_id);
+
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
+    /**
      * Indicates if the IDs are auto-incrementing.
      *
      * @var bool

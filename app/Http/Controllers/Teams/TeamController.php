@@ -144,6 +144,8 @@ class TeamController extends Controller
             ->where('user_id', $user->id)
             ->delete();
 
+        User::flushMembershipCache($user->id);
+
         if ($wasCurrent) {
             $user->switchToFallbackTeam($team);
         }
@@ -171,6 +173,8 @@ class TeamController extends Controller
             $team->invitations()->delete();
             $team->memberships()->delete();
             $team->delete();
+
+            User::flushMembershipCache();
         });
 
         if ($fallbackTeam) {

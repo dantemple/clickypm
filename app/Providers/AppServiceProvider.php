@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Support\LiveUpdates;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -21,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Broadcast once per request or command, after the work is done.
         $this->app->terminating(fn () => $this->app->make(LiveUpdates::class)->flush());
+
+        // Memberships are cached for a request at a time; see HasTeams.
+        $this->app->terminating(fn () => User::flushMembershipCache());
     }
 
     /**
@@ -31,7 +35,10 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
 
         // Long-running queue workers never "terminate", so flush after each job.
-        Queue::after(fn () => $this->app->make(LiveUpdates::class)->flush());
+        Queue::after(function () {
+            $this->app->make(LiveUpdates::class)->flush();
+            User::flushMembershipCache();
+        });
     }
 
     /**

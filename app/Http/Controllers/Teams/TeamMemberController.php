@@ -47,6 +47,8 @@ class TeamMemberController extends Controller
             ->where('user_id', $user->id)
             ->delete();
 
+        User::flushMembershipCache($user->id);
+
         if ($user->isCurrentTeam($team)) {
             $user->switchToFallbackTeam($team);
         }
