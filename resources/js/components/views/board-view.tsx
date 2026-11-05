@@ -2,28 +2,15 @@ import {
     closestCorners,
     DndContext,
     DragOverlay,
-    KeyboardSensor,
-    PointerSensor,
     useDroppable,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import type {
-    DragEndEvent,
-    DragOverEvent,
-    DragStartEvent,
-    UniqueIdentifier,
 } from '@dnd-kit/core';
 import {
-    arrayMove,
     SortableContext,
-    sortableKeyboardCoordinates,
     useSortable,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CalendarDays } from 'lucide-react';
-import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { AddTaskRow } from '@/components/tasks/add-task-row';
 import {
@@ -33,14 +20,10 @@ import {
 } from '@/components/tasks/pickers';
 import { TagBadge } from '@/components/tasks/tag-badge';
 import { TaskBadges } from '@/components/tasks/task-badges';
-import { formatDue, isOverdue, moveTask } from '@/lib/tasks';
+import { statusDropId, useTaskDrag } from '@/hooks/use-task-drag';
+import { formatDue, isOverdue } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
 import type { Status, Task, ViewSettings } from '@/types';
-
-/** Task ids per status id, top to bottom. */
-type Columns = Record<number, number[]>;
-
-const COLUMN_PREFIX = 'column-';
 
 export function BoardView({
     tasks,
@@ -50,127 +33,18 @@ export function BoardView({
     settings: ViewSettings;
 }) {
     const { statuses, canEdit } = useProject();
-    const tasksById = new Map(tasks.map((task) => [task.id, task]));
+    const { columns, tasksById, activeTask, sensors, handlers } =
+        useTaskDrag(tasks);
     const visibleStatuses = statuses.filter(
         (status) => settings.show_closed || !status.is_done,
     );
-
-    // Tasks arrive sorted by position, so each column keeps that order.
-    const fromProps: Columns = Object.fromEntries(
-        statuses.map((status) => [
-            status.id,
-            tasks
-                .filter((task) => task.status_id === status.id)
-                .map((task) => task.id),
-        ]),
-    );
-
-    // While dragging, and until the server confirms a drop, show the local
-    // arrangement so cards don't jump back to where they started.
-    const [pending, setPending] = useState<Columns | null>(null);
-    const [activeId, setActiveId] = useState<number | null>(null);
-    const columns = pending ?? fromProps;
-
-    const sensors = useSensors(
-        // A small distance keeps plain clicks (to open a task) from starting a drag.
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        }),
-    );
-
-    const columnOf = (id: UniqueIdentifier): number | undefined => {
-        if (typeof id === 'string' && id.startsWith(COLUMN_PREFIX)) {
-            return Number(id.slice(COLUMN_PREFIX.length));
-        }
-
-        const statusId = Object.keys(columns).find((key) =>
-            columns[Number(key)].includes(Number(id)),
-        );
-
-        return statusId === undefined ? undefined : Number(statusId);
-    };
-
-    const onDragStart = ({ active }: DragStartEvent) => {
-        setActiveId(Number(active.id));
-        setPending(fromProps);
-    };
-
-    // Moving between columns happens while hovering, so the card makes
-    // room in the column it's over; reordering within a column is on drop.
-    const onDragOver = ({ active, over }: DragOverEvent) => {
-        const from = columnOf(active.id);
-        const to = over ? columnOf(over.id) : undefined;
-
-        if (!over || from === undefined || to === undefined || from === to) {
-            return;
-        }
-
-        setPending((current) => {
-            const next = { ...(current ?? fromProps) };
-            const target = next[to].filter((id) => id !== Number(active.id));
-            const overIndex = target.indexOf(Number(over.id));
-
-            next[from] = next[from].filter((id) => id !== Number(active.id));
-            target.splice(
-                overIndex === -1 ? target.length : overIndex,
-                0,
-                Number(active.id),
-            );
-            next[to] = target;
-
-            return next;
-        });
-    };
-
-    const onDragEnd = ({ active, over }: DragEndEvent) => {
-        setActiveId(null);
-
-        const task = tasksById.get(Number(active.id));
-        const statusId = columnOf(active.id);
-
-        if (!task || !over || statusId === undefined || !pending) {
-            setPending(null);
-
-            return;
-        }
-
-        let order = pending[statusId];
-        const from = order.indexOf(task.id);
-        const to = order.indexOf(Number(over.id));
-
-        if (to !== -1 && from !== to) {
-            order = arrayMove(order, from, to);
-        }
-
-        const unchanged =
-            statusId === task.status_id &&
-            order.join() === fromProps[statusId].join();
-
-        if (unchanged) {
-            setPending(null);
-
-            return;
-        }
-
-        setPending({ ...pending, [statusId]: order });
-        moveTask(task, statusId, order, () => setPending(null));
-    };
-
-    const activeTask = activeId ? tasksById.get(activeId) : undefined;
 
     return (
         <DndContext
             id="project-board"
             sensors={sensors}
             collisionDetection={closestCorners}
-            onDragStart={onDragStart}
-            onDragOver={onDragOver}
-            onDragEnd={onDragEnd}
-            onDragCancel={() => {
-                setActiveId(null);
-                setPending(null);
-            }}
+            {...handlers}
         >
             <div className="flex items-start gap-3 overflow-x-auto p-4">
                 {visibleStatuses.map((status) => (
@@ -207,7 +81,7 @@ function BoardColumn({
     canEdit: boolean;
 }) {
     const { setNodeRef, isOver } = useDroppable({
-        id: `${COLUMN_PREFIX}${status.id}`,
+        id: statusDropId(status.id),
     });
 
     return (
@@ -225,7 +99,7 @@ function BoardColumn({
             </header>
 
             <SortableContext
-                id={`${COLUMN_PREFIX}${status.id}`}
+                id={statusDropId(status.id)}
                 items={tasks.map((task) => task.id)}
                 strategy={verticalListSortingStrategy}
             >

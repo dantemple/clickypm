@@ -1,5 +1,17 @@
-import { ChevronRight } from 'lucide-react';
-import type { ReactNode } from 'react';
+import {
+    closestCorners,
+    DndContext,
+    DragOverlay,
+    useDroppable,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ChevronRight, GripVertical } from 'lucide-react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 import { useState } from 'react';
 import { useProject } from '@/components/projects/project-context';
 import { AddTaskRow } from '@/components/tasks/add-task-row';
@@ -15,6 +27,7 @@ import {
     StatusPicker,
     StatusToggle,
 } from '@/components/tasks/pickers';
+import { statusDropId, useTaskDrag } from '@/hooks/use-task-drag';
 import { cn } from '@/lib/utils';
 import type { GroupBy, Task, TaskInput, ViewSettings } from '@/types';
 
@@ -35,8 +48,15 @@ export function ListView({
     tasks: Task[];
     settings: ViewSettings;
 }) {
-    const groups = useGroups(tasks, settings.group_by ?? 'status', settings);
+    const { canEdit } = useProject();
+    const groupBy = settings.group_by ?? 'status';
+    const drag = useTaskDrag(tasks);
+    const groups = useGroups(tasks, groupBy, settings, drag);
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+    // Dragging a row between groups changes its status, so it only makes
+    // sense when the groups are statuses.
+    const draggable = canEdit && groupBy === 'status';
 
     const toggle = (key: string) =>
         setCollapsed((current) => {
@@ -52,71 +72,206 @@ export function ListView({
         });
 
     return (
-        <div className="flex flex-col gap-6 p-4">
-            {groups.map((group) => (
-                <section key={group.key}>
-                    <button
-                        type="button"
-                        className="mb-1 flex items-center gap-2 rounded px-1 py-1 text-sm"
-                        onClick={() => toggle(group.key)}
-                    >
-                        <ChevronRight
-                            className={cn(
-                                'size-4 text-muted-foreground transition-transform',
-                                !collapsed.has(group.key) && 'rotate-90',
-                            )}
-                        />
-                        {group.label}
-                        <span className="text-muted-foreground">
-                            {group.tasks.length}
-                        </span>
-                    </button>
+        <DndContext
+            id="project-list"
+            sensors={drag.sensors}
+            collisionDetection={closestCorners}
+            {...drag.handlers}
+        >
+            <div className="flex flex-col gap-6 p-4">
+                {groups.map((group) => (
+                    <ListGroup
+                        key={group.key}
+                        group={group}
+                        collapsed={collapsed.has(group.key)}
+                        onToggle={() => toggle(group.key)}
+                        draggable={draggable}
+                        showStatus={groupBy !== 'status'}
+                    />
+                ))}
+            </div>
 
-                    {!collapsed.has(group.key) && (
-                        <div className="overflow-hidden rounded-lg border">
-                            <div
-                                className={cn(
-                                    ROW_GRID,
-                                    'border-b bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground',
-                                )}
-                            >
-                                <span>Name</span>
-                                <span>Assignee</span>
-                                <span>Due date</span>
-                                <span className="hidden sm:block">
-                                    Priority
-                                </span>
-                            </div>
-                            {group.tasks.map((task) => (
-                                <ListRow
-                                    key={task.id}
-                                    task={task}
-                                    showStatus={settings.group_by !== 'status'}
-                                />
-                            ))}
-                            <AddTaskRow defaults={group.defaults} />
-                        </div>
-                    )}
-                </section>
-            ))}
-        </div>
+            <DragOverlay>
+                {drag.activeTask && (
+                    <ListRow
+                        task={drag.activeTask}
+                        showStatus={false}
+                        draggable
+                        className="rounded-md border bg-background shadow-lg ring-1 ring-primary/30"
+                    />
+                )}
+            </DragOverlay>
+        </DndContext>
     );
 }
 
-function ListRow({ task, showStatus }: { task: Task; showStatus: boolean }) {
+function ListGroup({
+    group,
+    collapsed,
+    onToggle,
+    draggable,
+    showStatus,
+}: {
+    group: Group;
+    collapsed: boolean;
+    onToggle: () => void;
+    draggable: boolean;
+    showStatus: boolean;
+}) {
+    // The whole section takes drops, so a task can land on a collapsed or
+    // empty group by its heading.
+    const { setNodeRef, isOver } = useDroppable({
+        id: group.key,
+        disabled: !draggable,
+    });
+
+    return (
+        <section ref={setNodeRef}>
+            <button
+                type="button"
+                className={cn(
+                    'mb-1 flex items-center gap-2 rounded px-1 py-1 text-sm',
+                    isOver && collapsed && 'bg-muted',
+                )}
+                onClick={onToggle}
+            >
+                <ChevronRight
+                    className={cn(
+                        'size-4 text-muted-foreground transition-transform',
+                        !collapsed && 'rotate-90',
+                    )}
+                />
+                {group.label}
+                <span className="text-muted-foreground">
+                    {group.tasks.length}
+                </span>
+            </button>
+
+            {!collapsed && (
+                <div
+                    className={cn(
+                        'overflow-hidden rounded-lg border transition-colors',
+                        isOver && 'border-primary/50',
+                    )}
+                >
+                    <div
+                        className={cn(
+                            ROW_GRID,
+                            rowPadding(draggable),
+                            'border-b bg-muted/40 py-1.5 text-xs font-medium text-muted-foreground',
+                        )}
+                    >
+                        <span>Name</span>
+                        <span>Assignee</span>
+                        <span>Due date</span>
+                        <span className="hidden sm:block">Priority</span>
+                    </div>
+                    <SortableContext
+                        id={group.key}
+                        items={group.tasks.map((task) => task.id)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        {group.tasks.map((task) => (
+                            <SortableRow
+                                key={task.id}
+                                task={task}
+                                showStatus={showStatus}
+                                draggable={draggable}
+                            />
+                        ))}
+                    </SortableContext>
+                    <AddTaskRow defaults={group.defaults} />
+                </div>
+            )}
+        </section>
+    );
+}
+
+function SortableRow({
+    task,
+    showStatus,
+    draggable,
+}: {
+    task: Task;
+    showStatus: boolean;
+    draggable: boolean;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        setActivatorNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: task.id, disabled: !draggable });
+
+    return (
+        <ListRow
+            ref={setNodeRef}
+            task={task}
+            showStatus={showStatus}
+            draggable={draggable}
+            style={{ transform: CSS.Translate.toString(transform), transition }}
+            className={cn(isDragging && 'opacity-40')}
+            handle={
+                draggable && (
+                    <button
+                        type="button"
+                        ref={setActivatorNodeRef}
+                        aria-label={`Move ${task.title}`}
+                        className="absolute top-1/2 left-1 -translate-y-1/2 cursor-grab rounded text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing pointer-coarse:opacity-100"
+                        onClick={(event) => event.stopPropagation()}
+                        {...attributes}
+                        {...listeners}
+                    >
+                        <GripVertical className="size-4" />
+                    </button>
+                )
+            }
+        />
+    );
+}
+
+function ListRow({
+    ref,
+    task,
+    showStatus,
+    draggable,
+    handle,
+    style,
+    className,
+}: {
+    ref?: Ref<HTMLDivElement>;
+    task: Task;
+    showStatus: boolean;
+    draggable: boolean;
+    handle?: ReactNode;
+    style?: CSSProperties;
+    className?: string;
+}) {
     const { openTask } = useProject();
 
     return (
         <div
+            ref={ref}
             role="button"
             tabIndex={0}
+            style={style}
             className={cn(
                 ROW_GRID,
-                'cursor-pointer border-b px-3 py-1.5 text-sm hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
+                rowPadding(draggable),
+                'group relative cursor-pointer border-b py-1.5 text-sm hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
+                className,
             )}
             onClick={() => openTask(task)}
-            onKeyDown={(event) => event.key === 'Enter' && openTask(task)}
+            onKeyDown={(event) =>
+                event.key === 'Enter' &&
+                event.target === event.currentTarget &&
+                openTask(task)
+            }
         >
+            {handle}
             <div className="flex min-w-0 items-center gap-2">
                 <StatusToggle task={task} />
                 <span
@@ -147,10 +302,16 @@ function ListRow({ task, showStatus }: { task: Task; showStatus: boolean }) {
     );
 }
 
+/** Draggable rows keep a gutter on the left for the drag handle. */
+function rowPadding(draggable: boolean): string {
+    return draggable ? 'pr-3 pl-7' : 'px-3';
+}
+
 function useGroups(
     tasks: Task[],
     groupBy: GroupBy,
     settings: ViewSettings,
+    drag: ReturnType<typeof useTaskDrag>,
 ): Group[] {
     const { statuses, members, priorities } = useProject();
 
@@ -158,9 +319,13 @@ function useGroups(
         return statuses
             .filter((status) => settings.show_closed || !status.is_done)
             .map((status) => ({
-                key: `status-${status.id}`,
+                key: statusDropId(status.id),
                 label: <StatusBadge status={status} />,
-                tasks: tasks.filter((task) => task.status_id === status.id),
+                // Follow the drag in progress rather than the tasks' own
+                // statuses, so rows make room and stay put after a drop.
+                tasks: (drag.columns[status.id] ?? [])
+                    .map((id) => drag.tasksById.get(id))
+                    .filter((task): task is Task => !!task),
                 defaults: { status_id: status.id },
             }));
     }
