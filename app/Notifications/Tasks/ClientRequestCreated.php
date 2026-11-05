@@ -3,16 +3,12 @@
 namespace App\Notifications\Tasks;
 
 use App\Models\Task;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class ClientRequestCreated extends Notification implements ShouldQueue
+class ClientRequestCreated extends TaskNotification
 {
-    use Queueable;
-
     /**
      * Create a new notification instance.
      */
@@ -21,14 +17,19 @@ class ClientRequestCreated extends Notification implements ShouldQueue
         //
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    public function task(): Task
     {
-        return ['mail'];
+        return $this->task;
+    }
+
+    public function actor(): ?User
+    {
+        return $this->task->creator;
+    }
+
+    public function message(): string
+    {
+        return __(':name sent a new request', ['name' => $this->task->creator->name ?? __('A client')]);
     }
 
     /**

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Projects\ArchivedProjectController;
 use App\Http\Controllers\Projects\AttachmentController;
 use App\Http\Controllers\Projects\CommentController;
@@ -32,6 +33,11 @@ Route::prefix('{current_team}')
         Route::get('dashboard', DashboardController::class)->name('dashboard');
         Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
         Route::get('timeline', TimelineController::class)->name('timeline');
+
+        // Under "inbox" rather than "notifications" so the path can't shadow settings/notifications.
+        Route::get('inbox', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('inbox/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::patch('inbox/{notification}', [NotificationController::class, 'read'])->name('notifications.read');
 
         Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
         Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');

@@ -11,6 +11,7 @@ use App\Notifications\Tasks\ClientRequestCreated;
 use App\Notifications\Tasks\CommentMentioned;
 use App\Notifications\Tasks\CommentPosted;
 use App\Notifications\Tasks\TaskAssigned;
+use App\Notifications\Tasks\TaskNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 
@@ -20,9 +21,10 @@ use Illuminate\Support\Facades\Notification;
  * A task's followers are its creator, its assignee, everyone who has
  * commented on it and everyone who has been @-mentioned in a comment.
  * Nobody is told about their own activity, clients never
- * hear about internal notes, nobody is emailed about a project they can no
- * longer see, and people who turned task emails off in their settings hear
- * nothing at all.
+ * hear about internal notes and nobody is told about a project they can no
+ * longer see. Everyone else gets an in-app notification; whether they are
+ * emailed too is decided per channel by the notification itself, from the
+ * "task emails" switch in their settings.
  */
 class SendTaskNotifications
 {
@@ -123,12 +125,11 @@ class SendTaskNotifications
     /**
      * @param  Collection<int, User>  $recipients
      */
-    private function send(Collection $recipients, Task $task, ?User $actor, object $notification): void
+    private function send(Collection $recipients, Task $task, ?User $actor, TaskNotification $notification): void
     {
         $recipients = $recipients
             ->unique('id')
             ->reject(fn (User $user) => $user->is($actor))
-            ->filter(fn (User $user) => $user->task_emails)
             ->filter(fn (User $user) => $user->can('view', $task->project))
             ->values();
 

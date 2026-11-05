@@ -4,16 +4,11 @@ namespace App\Notifications\Tasks;
 
 use App\Models\Task;
 use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class TaskAssigned extends Notification implements ShouldQueue
+class TaskAssigned extends TaskNotification
 {
-    use Queueable;
-
     /**
      * Create a new notification instance.
      */
@@ -22,14 +17,19 @@ class TaskAssigned extends Notification implements ShouldQueue
         //
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    public function task(): Task
     {
-        return ['mail'];
+        return $this->task;
+    }
+
+    public function actor(): ?User
+    {
+        return $this->assigner;
+    }
+
+    public function message(): string
+    {
+        return __(':name assigned you a task', ['name' => $this->assigner->name ?? __('Someone')]);
     }
 
     /**

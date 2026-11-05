@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useEcho } from '@laravel/echo-react';
+import { useEcho, useEchoNotification } from '@laravel/echo-react';
 
 /** Props the sidebar and dashboard show for the current workspace. */
 const WORKSPACE_PROPS = [
@@ -28,6 +28,9 @@ const PROJECT_PROPS = [
 
 /** Props of the open task's panel. */
 const TASK_PROPS = ['comments', 'subtasks', 'attachments', 'activity'];
+
+/** Props the sidebar's notification bell shows. */
+const NOTIFICATION_PROPS = ['unreadNotificationsCount'];
 
 const pending = new Set<string>();
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -79,5 +82,25 @@ export function useProjectLiveUpdates(
             );
         },
         [openTaskId],
+    );
+}
+
+/**
+ * Keep the bell's unread count in step as notifications arrive on the
+ * person's own channel. The callback runs too, so an open inbox can refresh.
+ */
+export function useNotificationLiveUpdates(
+    userId: number,
+    onNotification: () => void,
+    dependencies: unknown[] = [],
+): void {
+    useEchoNotification(
+        `App.Models.User.${userId}`,
+        () => {
+            reloadSoon(NOTIFICATION_PROPS);
+            onNotification();
+        },
+        [],
+        dependencies,
     );
 }

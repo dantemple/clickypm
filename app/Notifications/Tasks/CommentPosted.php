@@ -3,16 +3,13 @@
 namespace App\Notifications\Tasks;
 
 use App\Models\Comment;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\Task;
+use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class CommentPosted extends Notification implements ShouldQueue
+class CommentPosted extends TaskNotification
 {
-    use Queueable;
-
     /**
      * Create a new notification instance.
      */
@@ -21,14 +18,23 @@ class CommentPosted extends Notification implements ShouldQueue
         //
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    public function task(): Task
     {
-        return ['mail'];
+        return $this->comment->task;
+    }
+
+    public function actor(): ?User
+    {
+        return $this->comment->user;
+    }
+
+    public function message(): string
+    {
+        $name = $this->comment->user->name ?? __('Someone');
+
+        return $this->comment->is_internal
+            ? __(':name added an internal note', ['name' => $name])
+            : __(':name commented', ['name' => $name]);
     }
 
     /**

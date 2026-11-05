@@ -3,6 +3,7 @@ import { ChartGantt, LayoutGrid, Trash2 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { SearchButton } from '@/components/command-palette';
 import { NavMain } from '@/components/nav-main';
+import { NotificationsButton } from '@/components/notifications-button';
 import { NavProjects } from '@/components/nav-projects';
 import { NavUser } from '@/components/nav-user';
 import { TeamSwitcher } from '@/components/team-switcher';
@@ -75,6 +76,9 @@ export function AppSidebar() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SearchButton />
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <NotificationsButton />
                         </SidebarMenuItem>
                     </SidebarMenu>
                 )}

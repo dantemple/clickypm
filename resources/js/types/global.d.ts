@@ -18,6 +18,7 @@ declare module '@inertiajs/core' {
             teams: Team[];
             projects: SidebarProject[];
             archivedProjectsCount: number;
+            unreadNotificationsCount: number;
             [key: string]: unknown;
         };
     }
