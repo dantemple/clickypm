@@ -18,6 +18,20 @@ enum TaskPriority: int
     }
 
     /**
+     * The priority written by name in any case ("high", "Urgent"), if there is one.
+     */
+    public static function fromName(string $name): ?self
+    {
+        foreach (self::cases() as $priority) {
+            if (strcasecmp($priority->name, trim($name)) === 0) {
+                return $priority;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get the priorities as options for the frontend.
      *
      * @return array<array{value: int, label: string}>

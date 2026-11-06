@@ -16,6 +16,36 @@ use Illuminate\Validation\Validator;
 class SaveTaskRequest extends FormRequest
 {
     /**
+     * The API takes priorities by name ("high") as well as by number.
+     */
+    protected function prepareForValidation(): void
+    {
+        $priority = $this->input('priority');
+
+        if (is_string($priority) && ($named = TaskPriority::fromName($priority))) {
+            $this->merge(['priority' => $named->value]);
+        }
+    }
+
+    /**
+     * The project the task is (or will be) in. API routes for one task
+     * carry only the task.
+     */
+    protected function project(): Project
+    {
+        $project = $this->route('project');
+
+        if ($project instanceof Project) {
+            return $project;
+        }
+
+        /** @var Task $task */
+        $task = $this->route('task');
+
+        return $task->project;
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * Every field is optional on update so inline edits can send just one.
@@ -24,8 +54,7 @@ class SaveTaskRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var Project $project */
-        $project = $this->route('project');
+        $project = $this->project();
         $required = $this->isMethod('post') ? 'required' : 'sometimes';
 
         $fields = $project->customFields;

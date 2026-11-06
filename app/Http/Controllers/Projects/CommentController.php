@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Projects;
 
+use App\Actions\Tasks\PostComment;
 use App\Actions\Tasks\SendTaskNotifications;
 use App\Actions\Tasks\SyncCommentMentions;
 use App\Http\Controllers\Controller;
@@ -18,7 +19,7 @@ class CommentController extends Controller
     /**
      * Add a comment, or an internal note when the author is on the team.
      */
-    public function store(Request $request, Team $current_team, Project $project, Task $task, SyncCommentMentions $mentions, SendTaskNotifications $notifications): RedirectResponse
+    public function store(Request $request, Team $current_team, Project $project, Task $task, PostComment $postComment): RedirectResponse
     {
         Gate::authorize('view', $task);
 
@@ -27,15 +28,7 @@ class CommentController extends Controller
             'is_internal' => ['sometimes', 'boolean'],
         ]);
 
-        $comment = $task->comments()->create([
-            'user_id' => $request->user()->id,
-            'body' => $validated['body'],
-            'is_internal' => ($validated['is_internal'] ?? false) && ! $request->user()->isClientOf($current_team),
-        ]);
-
-        $mentioned = $mentions->handle($comment);
-
-        $notifications->commentPosted($comment, $mentioned);
+        $postComment->handle($request->user(), $task, $validated['body'], (bool) ($validated['is_internal'] ?? false));
 
         return back();
     }
