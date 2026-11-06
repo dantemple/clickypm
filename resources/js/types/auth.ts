@@ -33,3 +33,14 @@ export type TwoFactorSetupData = {
 export type TwoFactorSecretKey = {
     secretKey: string;
 };
+
+export type ApiToken = {
+    id: number;
+    name: string;
+    read_only: boolean;
+    created_at_diff: string;
+    last_used_at_diff: string | null;
+    /** The day it stops working, or null for never. */
+    expires_at: string | null;
+    expired: boolean;
+};
