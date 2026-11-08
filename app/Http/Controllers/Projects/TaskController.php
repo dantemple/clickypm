@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Projects;
 
-use App\Actions\Tasks\SaveCustomFieldValues;
-use App\Actions\Tasks\SendTaskNotifications;
-use App\Actions\Tasks\SyncTaskTags;
+use App\Actions\Tasks\CreateTask;
+use App\Actions\Tasks\UpdateTask;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tasks\SaveTaskRequest;
 use App\Models\Attachment;
@@ -13,7 +12,6 @@ use App\Models\Task;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -29,39 +27,24 @@ class TaskController extends Controller
      * Clients can only suggest a title and description; their tasks wait in
      * the project's request inbox until someone on the team triages them.
      */
-    public function store(SaveTaskRequest $request, Team $current_team, Project $project, SendTaskNotifications $notifications, SaveCustomFieldValues $customFields, SyncTaskTags $tags): RedirectResponse
+    public function store(SaveTaskRequest $request, Team $current_team, Project $project, CreateTask $createTask): RedirectResponse
     {
         Gate::authorize('view', $project);
 
-        $isClient = $request->user()->isClientOf($current_team);
-
-        $fields = $request->safe()->except(['attachments', 'custom_fields', 'tag_ids', 'new_tags']);
-
-        $task = $project->tasks()->create([
-            'status_id' => $project->defaultStatus()->id,
-            ...($isClient ? Arr::only($fields, ['title', 'description']) : $fields),
-            'needs_triage' => $isClient,
-            // Count trashed tasks so a restored one never shares a position.
-            'position' => (int) $project->tasks()->withTrashed()->max('position') + 1,
-            'created_by' => $request->user()->id,
-        ]);
-
-        if (! $isClient) {
-            $customFields->handle($task, $request->validated('custom_fields', []));
-            $tags->handle($task, $request->validated('tag_ids'), $request->validated('new_tags', []));
-        }
+        $task = $createTask->handle(
+            $request->user(),
+            $project,
+            $request->safe()->except(['attachments', 'custom_fields', 'tag_ids', 'new_tags']),
+            $request->validated('custom_fields', []),
+            $request->validated('tag_ids'),
+            $request->validated('new_tags', []),
+        );
 
         foreach ($request->file('attachments', []) as $file) {
             Attachment::store($task, $file, $request->user());
         }
 
-        if ($task->assignee_id) {
-            $notifications->taskAssigned($task, $request->user());
-        }
-
-        if ($isClient) {
-            $notifications->clientRequestCreated($task);
-
+        if ($task->needs_triage) {
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Request sent. The team will review it shortly.')]);
         }
 
@@ -71,18 +54,18 @@ class TaskController extends Controller
     /**
      * Update one or more of a task's fields.
      */
-    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, SaveCustomFieldValues $customFields, SyncTaskTags $tags, SendTaskNotifications $notifications): RedirectResponse
+    public function update(SaveTaskRequest $request, Team $current_team, Project $project, Task $task, UpdateTask $updateTask): RedirectResponse
     {
         Gate::authorize('update', $project);
 
-        $task->update($request->safe()->except(['attachments', 'custom_fields', 'tag_ids', 'new_tags']));
-
-        $customFields->handle($task, $request->validated('custom_fields', []));
-        $tags->handle($task, $request->validated('tag_ids'), $request->validated('new_tags', []));
-
-        if ($task->wasChanged('assignee_id') && $task->assignee_id) {
-            $notifications->taskAssigned($task, $request->user());
-        }
+        $updateTask->handle(
+            $request->user(),
+            $task,
+            $request->safe()->except(['attachments', 'custom_fields', 'tag_ids', 'new_tags']),
+            $request->validated('custom_fields', []),
+            $request->validated('tag_ids'),
+            $request->validated('new_tags', []),
+        );
 
         return back();
     }

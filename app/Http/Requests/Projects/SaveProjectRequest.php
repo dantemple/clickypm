@@ -28,10 +28,11 @@ class SaveProjectRequest extends FormRequest
     public function rules(): array
     {
         $project = $this->route('project');
-        $team = $this->route('current_team');
+        $team = $this->route('current_team') ?? $this->route('workspace') ?? ($project instanceof Project ? $project->team : null);
 
         return [
-            'name' => ['required', 'string', 'max:255'],
+            // The API can change one field at a time.
+            'name' => [$this->isMethod('post') ? 'required' : 'sometimes', 'required', 'string', 'max:255'],
             'key' => [
                 'sometimes',
                 'string',

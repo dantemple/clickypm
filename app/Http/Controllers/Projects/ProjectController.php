@@ -29,6 +29,7 @@ class ProjectController extends Controller
             $request->validated('name'),
             $request->validated('color'),
             $request->validated('description'),
+            $request->validated('key'),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project created.')]);
