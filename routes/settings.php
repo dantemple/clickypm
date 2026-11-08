@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\NotificationController;
 use App\Http\Controllers\Settings\ProfileAvatarController;
@@ -37,6 +38,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/notifications', [NotificationController::class, 'edit'])->name('notifications.edit');
     Route::put('settings/notifications', [NotificationController::class, 'update'])->name('notifications.update');
+
+    // Tokens open everything the account can reach, so making one needs a
+    // fresh password, like the security page.
+    Route::get('settings/api-tokens', [ApiTokenController::class, 'index'])
+        ->middleware(RequirePassword::class)
+        ->name('api-tokens.index');
+    Route::post('settings/api-tokens', [ApiTokenController::class, 'store'])
+        ->middleware(RequirePassword::class)
+        ->name('api-tokens.store');
+    Route::delete('settings/api-tokens/{token}', [ApiTokenController::class, 'destroy'])
+        ->whereNumber('token')
+        ->name('api-tokens.destroy');
 
     Route::get('settings/appearance', [AppearanceController::class, 'edit'])->name('appearance.edit');
     Route::patch('settings/appearance', [AppearanceController::class, 'update'])->name('appearance.update');

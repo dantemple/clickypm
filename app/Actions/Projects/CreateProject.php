@@ -14,11 +14,11 @@ class CreateProject
     /**
      * Create a project with the default statuses and a List view.
      */
-    public function handle(User $user, Team $team, string $name, ?string $color = null, ?string $description = null): Project
+    public function handle(User $user, Team $team, string $name, ?string $color = null, ?string $description = null, ?string $key = null): Project
     {
-        return DB::transaction(function () use ($user, $team, $name, $color, $description) {
+        return DB::transaction(function () use ($user, $team, $name, $color, $description, $key) {
             $project = $team->projects()->create([
-                ...array_filter(['name' => $name, 'color' => $color, 'description' => $description], fn ($value) => $value !== null),
+                ...array_filter(['name' => $name, 'key' => $key, 'color' => $color, 'description' => $description], fn ($value) => $value !== null),
                 'position' => (int) $team->projects()->max('position') + 1,
                 'created_by' => $user->id,
             ]);
